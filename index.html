@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concert Marker Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --text: #e0e0e8;
+    --text-dim: #888899;
+    --accent: #d4a843;
+    --accent-dim: #a8862f;
+    --green: #4ade80;
+    --red: #f87171;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  header {
+    text-align: center;
+    padding: 40px 0 30px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+  }
+
+  header h1 {
+    font-family: var(--mono);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-top: 6px;
+  }
+
+  /* Steps Nav */
+  .steps-nav {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 30px;
+  }
+
+  .step-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .step-btn:hover { border-color: var(--accent-dim); color: var(--text); }
+  .step-btn.active { background: var(--accent-dim); color: #fff; border-color: var(--accent); }
+  .step-btn.complete { border-color: var(--green); color: var(--green); }
+
+  /* Panels */
+  .panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+  }
+
+  .panel.active { display: block; }
+
+  .panel h2 {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .panel .desc {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+  }
+
+  /* Form Elements */
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--text-dim); opacity: 0.5; }
+
+  .row { display: flex; gap: 12px; }
+  .row > * { flex: 1; }
+
+  button {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+  .btn-primary:hover { background: var(--accent-dim); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--accent-dim); }
+
+  .btn-small {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--red);
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+
+  /* Setlist Display */
+  .setlist-group { margin-bottom: 20px; }
+
+  .set-header {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .song-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  .song-row:nth-child(odd) { background: var(--surface2); }
+  .song-row .track-num { font-family: var(--mono); color: var(--text-dim); width: 40px; font-size: 0.8rem; }
+  .song-row .song-name { flex: 1; }
+  .song-row .duration { font-family: var(--mono); color: var(--text-dim); font-size: 0.85rem; }
+
+  /* Gear Chain */
+  .gear-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .gear-row input { margin-bottom: 0; }
+  .gear-row .gear-label { width: 120px; flex-shrink: 0; }
+  .gear-row .gear-value { flex: 1; }
+
+  .marker-preview {
+    background: var(--bg);
+    border: 1px solid var(--accent-dim);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-top: 12px;
+    word-break: break-all;
+  }
+
+  .marker-preview span { color: var(--text-dim); font-size: 0.75rem; display: block; margin-bottom: 4px; }
+
+  /* Anchor Points */
+  .anchor-info {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  /* Marker Table */
+  .marker-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-top: 16px;
+  }
+
+  .marker-table th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .marker-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--surface2);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+  }
+
+  .marker-table tr.set-break td {
+    background: var(--surface2);
+    color: var(--accent);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Status Messages */
+  .status {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 12px;
+  }
+
+  .status.success { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+  .status.error { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+  .status.info { background: rgba(212,168,67,0.1); color: var(--accent); border: 1px solid rgba(212,168,67,0.2); }
+
+  .nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Import instructions */
+  .import-note {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  footer {
+    text-align: center;
+    padding: 30px 0;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+  }
+
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>// CONCERT MARKER GEN</h1>
+    <p>Generate DAW markers for your live recordings</p>
+  </header>
+
+  <div class="steps-nav">
+    <button class="step-btn active" onclick="goToStep(1)">1. Show</button>
+    <button class="step-btn" onclick="goToStep(2)">2. Gear</button>
+    <button class="step-btn" onclick="goToStep(3)">3. Anchors</button>
+    <button class="step-btn" onclick="goToStep(4)">4. Export</button>
+  </div>
+
+  <!-- STEP 1: Show Info -->
+  <div class="panel active" id="step1">
+    <h2>Show Info</h2>
+    <p class="desc">Enter a date to fetch the setlist from phish.in, or enter songs manually.</p>
+
+    <div class="row">
+      <div>
+        <label>Band</label>
+        <input type="text" id="band" placeholder="ph" value="ph">
+      </div>
+      <div>
+        <label>Date (YYYY-MM-DD)</label>
+        <input type="text" id="showDate" placeholder="2025-07-15">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="btn-primary" onclick="fetchSetlist()">Fetch from phish.in</button>
+      <button class="btn-secondary" onclick="showManualEntry()">Manual Entry</button>
+    </div>
+
+    <div id="fetchStatus"></div>
+
+    <!-- Manual Entry -->
+    <div id="manualEntry" style="display:none;margin-top:16px;">
+      <label>Venue (optional)</label>
+      <input type="text" id="manualVenue" placeholder="Madison Square Garden, New York, NY">
+      <div id="manualSongs"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn-secondary btn-small" onclick="addManualSong()">+ Add Song</button>
+        <button class="btn-secondary btn-small" onclick="addSetBreak()">+ Set Break</button>
+      </div>
+    </div>
+
+    <!-- Fetched Setlist -->
+    <div id="setlistDisplay"></div>
+
+    <div class="nav-buttons">
+      <div></div>
+      <button class="btn-primary" onclick="goToStep(2)" id="toStep2" disabled>Next: Gear Chain →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Gear Chain -->
+  <div class="panel" id="step2">
+    <h2>Gear Chain</h2>
+    <p class="desc">Build your signal chain. Values are joined with periods in the marker name. Leave empty for no gear chain.</p>
+
+    <div id="gearRows"></div>
+    <button class="btn-secondary btn-small" onclick="addGearRow()" style="margin-bottom:16px;">+ Add Gear</button>
+
+    <div class="row" style="margin-top:12px;">
+      <div>
+        <label>Set Format</label>
+        <select id="setFormat">
+          <option value="s0">s01, s02 (default)</option>
+          <option value="se">se1, se2</option>
+        </select>
+      </div>
+      <div>
+        <label>Track Numbering</label>
+        <select id="trackNumbering">
+          <option value="per_set">Reset per set (t01, t01)</option>
+          <option value="continuous">Continuous (t01, t09)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="marker-preview" id="markerPreview">
+      <span>Preview:</span>
+      Loading...
+    </div>
+
+    <!-- Presets -->
+    <div style="margin-top:16px;display:flex;gap:8px;align-items:center;">
+      <button class="btn-secondary btn-small" onclick="savePreset()">Save Preset</button>
+      <select id="presetSelect" style="width:auto;margin-bottom:0;font-size:0.8rem;padding:6px;" onchange="loadPreset()">
+        <option value="">Load Preset...</option>
+      </select>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-secondary" onclick="goToStep(1)">← Back</button>
+      <button class="btn-primary" onclick="goToStep(3)">Next: Anchor Points →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Anchor Points -->
+  <div class="panel" id="step3">
+    <h2>Anchor Points</h2>
+    <p class="desc">Tell us where the music sits in your recording. Or skip for markers starting at 0:00.</p>
+
+    <div class="anchor-info">
+      Your recording probably started before the band. These anchor points let us calculate exactly where each song begins in your file. Open your recording in your DAW, find these three moments, and enter the timecodes below.
+    </div>
+
+    <label>Where does the last song of Set 1 END?</label>
+    <input type="text" id="anchor1" placeholder="1:20:43.413 (or leave blank to start at 0:00)">
+
+    <label>Where does Set 2 START?</label>
+    <input type="text" id="anchor2" placeholder="1:24:14.365">
+
+    <label>Where does the very last song END?</label>
+    <input type="text" id="anchor3" placeholder="3:09:02.860">
+
+    <div style="margin-top:8px;">
+      <button class="btn-secondary btn-small" onclick="clearAnchors()">Skip Anchors (start at 0:00)</button>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-secondary" onclick="goToStep(2)">← Back</button>
+      <button class="btn-primary" onclick="calculateAndGoToExport()">Calculate Markers →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Export -->
+  <div class="panel" id="step4">
+    <h2>Export</h2>
+    <p class="desc">Preview your markers and download for your DAW.</p>
+
+    <div class="row">
+      <div>
+        <label>Export Format</label>
+        <select id="exportFormat" onchange="updateImportNote()">
+          <option value="audition">Adobe Audition (.csv)</option>
+          <option value="reaper">Reaper (.csv)</option>
+          <option value="audacity">Audacity (.txt)</option>
+          <option value="protools">Pro Tools (text)</option>
+          <option value="logic">Logic Pro (.txt)</option>
+          <option value="generic">Generic CSV (.csv)</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:16px;">
+        <button class="btn-primary" onclick="downloadMarkers()" style="width:100%;">Download Markers</button>
+      </div>
+    </div>
+    <p class="import-note" id="importNote"></p>
+
+    <div id="markerTableContainer"></div>
+
+    <div class="nav-buttons">
+      <button class="btn-secondary" onclick="goToStep(3)">← Back</button>
+      <div></div>
+    </div>
+  </div>
+
+  <footer>
+    <a href="https://github.com/PosterNutbag01/concert-marker">GitHub</a> · Data from <a href="https://phish.in">phish.in</a> · Built for tapers
+  </footer>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let showData = { band: 'ph', date: '', venue: '', sets: [] };
+let gearChain = [];
+let calculatedMarkers = [];
+let manualSetCount = 1;
+let manualSongCount = 0;
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function goToStep(n) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  document.querySelectorAll('.step-btn')[n - 1].classList.add('active');
+  if (n === 2) updateMarkerPreview();
+  if (n === 4) { calculateMarkers(); renderMarkerTable(); updateImportNote(); }
+}
+
+// ============================================================
+// STEP 1: FETCH SETLIST
+// ============================================================
+async function fetchSetlist() {
+  const date = document.getElementById('showDate').value.trim();
+  const band = document.getElementById('band').value.trim();
+  if (!date) { showStatus('fetchStatus', 'Enter a date.', 'error'); return; }
+
+  showData.band = band.toLowerCase().replace(/\s+/g, '');
+  showData.date = date;
+
+  showStatus('fetchStatus', 'Fetching from phish.in...', 'info');
+
+  try {
+    const resp = await fetch(`https://phish.in/api/v2/shows/${date}`);
+    if (!resp.ok) throw new Error('Show not found');
+    const data = await resp.json();
+
+    showData.venue = data.venue_name || data.venue?.name || '';
+    const tracks = data.tracks || [];
+
+    // Group by set
+    const setMap = {};
+    tracks.forEach(t => {
+      const setLabel = t.set || t.set_name || '1';
+      if (!setMap[setLabel]) setMap[setLabel] = [];
+      setMap[setLabel].push({ title: t.title, duration: t.duration, position: setMap[setLabel].length + 1 });
+    });
+
+    showData.sets = Object.entries(setMap).map(([label, songs], i) => ({
+      number: i + 1, label: label === 'E' ? 'Encore' : `Set ${label}`, songs
+    }));
+
+    renderSetlist();
+    showStatus('fetchStatus', `Found: ${showData.venue || date}`, 'success');
+    document.getElementById('toStep2').disabled = false;
+    document.getElementById('manualEntry').style.display = 'none';
+  } catch (e) {
+    showStatus('fetchStatus', `Could not fetch show. Try manual entry. (${e.message})`, 'error');
+  }
+}
+
+function renderSetlist() {
+  let html = '';
+  let globalTrack = 0;
+  showData.sets.forEach(set => {
+    html += `<div class="setlist-group"><div class="set-header">${set.label}</div>`;
+    set.songs.forEach(song => {
+      globalTrack++;
+      const mins = Math.floor(song.duration / 60);
+      const secs = song.duration % 60;
+      const dur = `${mins}:${String(secs).padStart(2, '0')}`;
+      html += `<div class="song-row">
+        <span class="track-num">${String(globalTrack).padStart(2, '0')}</span>
+        <span class="song-name">${song.title}</span>
+        <span class="duration">${dur}</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  document.getElementById('setlistDisplay').innerHTML = html;
+}
+
+// Manual Entry
+function showManualEntry() {
+  document.getElementById('manualEntry').style.display = 'block';
+  showData.band = document.getElementById('band').value.trim().toLowerCase().replace(/\s+/g, '');
+  showData.date = document.getElementById('showDate').value.trim();
+  if (!document.getElementById('manualSongs').children.length) {
+    manualSetCount = 1;
+    manualSongCount = 0;
+    addManualSong();
+  }
+}
+
+function addManualSong() {
+  manualSongCount++;
+  const div = document.createElement('div');
+  div.className = 'row';
+  div.style.marginBottom = '4px';
+  div.innerHTML = `
+    <input type="text" placeholder="Song name" class="manual-song-name" style="flex:3;margin-bottom:4px;">
+    <input type="text" placeholder="m:ss" class="manual-song-dur" style="flex:1;margin-bottom:4px;">
+    <input type="hidden" class="manual-song-set" value="${manualSetCount}">
+  `;
+  document.getElementById('manualSongs').appendChild(div);
+}
+
+function addSetBreak() {
+  manualSetCount++;
+  const div = document.createElement('div');
+  div.className = 'set-header';
+  div.style.marginTop = '12px';
+  div.textContent = manualSetCount === 3 ? 'Encore' : `Set ${manualSetCount}`;
+  document.getElementById('manualSongs').appendChild(div);
+}
+
+function parseManualSetlist() {
+  const names = document.querySelectorAll('.manual-song-name');
+  const durs = document.querySelectorAll('.manual-song-dur');
+  const sets = document.querySelectorAll('.manual-song-set');
+  const setMap = {};
+
+  names.forEach((el, i) => {
+    const name = el.value.trim();
+    const durStr = durs[i].value.trim();
+    const setNum = sets[i].value;
+    if (!name) return;
+
+    const parts = durStr.split(':');
+    let seconds = 0;
+    if (parts.length === 2) seconds = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    else if (parts.length === 3) seconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+
+    if (!setMap[setNum]) setMap[setNum] = [];
+    setMap[setNum].push({ title: name, duration: seconds, position: setMap[setNum].length + 1 });
+  });
+
+  showData.venue = document.getElementById('manualVenue').value.trim();
+  showData.sets = Object.entries(setMap).map(([num, songs], i) => ({
+    number: parseInt(num), label: parseInt(num) === 3 ? 'Encore' : `Set ${num}`, songs
+  }));
+
+  renderSetlist();
+  document.getElementById('toStep2').disabled = false;
+}
+
+// Auto-parse manual on next
+const origGoToStep = goToStep;
+goToStep = function(n) {
+  if (n === 2 && document.getElementById('manualEntry').style.display !== 'none') {
+    parseManualSetlist();
+  }
+  origGoToStep(n);
+};
+
+// ============================================================
+// STEP 2: GEAR CHAIN
+// ============================================================
+function addGearRow(label = '', value = '') {
+  const div = document.createElement('div');
+  div.className = 'gear-row';
+  div.innerHTML = `
+    <input type="text" class="gear-label" placeholder="Label (optional)" value="${label}" oninput="updateMarkerPreview()">
+    <input type="text" class="gear-value" placeholder="Value (e.g. dpa4023)" value="${value}" oninput="updateMarkerPreview()">
+    <button class="btn-danger" onclick="this.parentElement.remove();updateMarkerPreview();">×</button>
+  `;
+  document.getElementById('gearRows').appendChild(div);
+  updateMarkerPreview();
+}
+
+function updateMarkerPreview() {
+  const values = [...document.querySelectorAll('.gear-value')].map(el => el.value.trim()).filter(v => v);
+  const band = showData.band || 'ph';
+  const date = (showData.date || '2025-01-01').replace(/-/g, '.');
+  const fmt = document.getElementById('setFormat').value;
+  const setStr = fmt === 'se' ? 'se1' : 's01';
+  const gear = values.length ? values.join('.') + '.' : '';
+  const preview = `${band}${date}${gear}${setStr}t01`;
+  document.getElementById('markerPreview').innerHTML = `<span>Preview:</span>${preview}`;
+}
+
+function savePreset() {
+  const name = prompt('Preset name:');
+  if (!name) return;
+  const values = [...document.querySelectorAll('.gear-row')].map(row => ({
+    label: row.querySelector('.gear-label').value,
+    value: row.querySelector('.gear-value').value
+  }));
+  const presets = JSON.parse(localStorage.getItem('gearPresets') || '{}');
+  presets[name] = values;
+  localStorage.setItem('gearPresets', JSON.stringify(presets));
+  loadPresetList();
+}
+
+function loadPresetList() {
+  const presets = JSON.parse(localStorage.getItem('gearPresets') || '{}');
+  const sel = document.getElementById('presetSelect');
+  sel.innerHTML = '<option value="">Load Preset...</option>';
+  Object.keys(presets).forEach(name => {
+    sel.innerHTML += `<option value="${name}">${name}</option>`;
+  });
+}
+
+function loadPreset() {
+  const name = document.getElementById('presetSelect').value;
+  if (!name) return;
+  const presets = JSON.parse(localStorage.getItem('gearPresets') || '{}');
+  const preset = presets[name];
+  if (!preset) return;
+  document.getElementById('gearRows').innerHTML = '';
+  preset.forEach(g => addGearRow(g.label, g.value));
+}
+
+// ============================================================
+// STEP 3: ANCHOR POINTS & CALCULATION
+// ============================================================
+function parseTime(str) {
+  if (!str || !str.trim()) return null;
+  str = str.trim();
+  const parts = str.split(':');
+  if (parts.length === 3) {
+    const secParts = parts[2].split('.');
+    return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(secParts[0]) + (secParts[1] ? parseInt(secParts[1]) / Math.pow(10, secParts[1].length) : 0);
+  } else if (parts.length === 2) {
+    const secParts = parts[1].split('.');
+    return parseInt(parts[0]) * 60 + parseInt(secParts[0]) + (secParts[1] ? parseInt(secParts[1]) / Math.pow(10, secParts[1].length) : 0);
+  }
+  return parseFloat(str) || 0;
+}
+
+function clearAnchors() {
+  document.getElementById('anchor1').value = '';
+  document.getElementById('anchor2').value = '';
+  document.getElementById('anchor3').value = '';
+}
+
+function calculateMarkers() {
+  const a1 = parseTime(document.getElementById('anchor1').value);
+  const a2 = parseTime(document.getElementById('anchor2').value);
+  const a3 = parseTime(document.getElementById('anchor3').value);
+  const fmt = document.getElementById('setFormat').value;
+  const numbering = document.getElementById('trackNumbering').value;
+
+  const gearValues = [...document.querySelectorAll('.gear-value')].map(el => el.value.trim()).filter(v => v);
+  const gear = gearValues.length ? gearValues.join('.') + '.' : '';
+  const band = showData.band || 'ph';
+  const date = (showData.date || '').replace(/-/g, '.');
+
+  calculatedMarkers = [];
+  let globalTrack = 0;
+
+  showData.sets.forEach((set, setIdx) => {
+    const totalDur = set.songs.reduce((sum, s) => sum + s.duration, 0);
+    let setStart = 0;
+
+    // Determine set start based on anchors
+    if (setIdx === 0 && a1 !== null) {
+      setStart = a1 - totalDur;
+    } else if (setIdx === 0) {
+      setStart = 0;
+    } else if (setIdx === 1 && a2 !== null) {
+      setStart = a2;
+    } else if (setIdx >= 1 && a3 !== null) {
+      // For encore or later sets without specific anchor, work backwards from show end
+      const laterSets = showData.sets.slice(setIdx);
+      const laterDur = laterSets.reduce((sum, s) => sum + s.songs.reduce((ss, song) => ss + song.duration, 0), 0);
+      setStart = a3 - laterDur;
+    } else {
+      // No anchors — stack sets with no gap
+      let cumulative = 0;
+      for (let i = 0; i < setIdx; i++) {
+        cumulative += showData.sets[i].songs.reduce((sum, s) => sum + s.duration, 0);
+      }
+      setStart = cumulative;
+    }
+
+    let trackInSet = 0;
+    let cumTime = setStart;
+
+    set.songs.forEach(song => {
+      globalTrack++;
+      trackInSet++;
+      const trackNum = numbering === 'continuous' ? globalTrack : trackInSet;
+      const setNum = set.number;
+      const setStr = fmt === 'se' ? `se${setNum}` : `s${String(setNum).padStart(2, '0')}`;
+      const trackStr = `t${String(trackNum).padStart(2, '0')}`;
+      const markerName = `${band}${date}${gear}${setStr}${trackStr}`;
+
+      calculatedMarkers.push({
+        name: markerName,
+        startSeconds: cumTime,
+        song: song.title,
+        set: setNum,
+        setLabel: set.label,
+        track: trackNum,
+        duration: song.duration
+      });
+
+      cumTime += song.duration;
+    });
+  });
+}
+
+function calculateAndGoToExport() {
+  calculateMarkers();
+  goToStep(4);
+}
+
+// ============================================================
+// STEP 4: RENDER & EXPORT
+// ============================================================
+function formatTime(secs) {
+  if (secs < 0) secs = 0;
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  const sec = Math.floor(s);
+  const ms = Math.round((s - sec) * 1000);
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
+  return `${m}:${String(sec).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
+}
+
+function renderMarkerTable() {
+  let html = '<table class="marker-table"><thead><tr><th>#</th><th>Song</th><th>Start</th><th>Set</th><th>Marker Name</th></tr></thead><tbody>';
+  let lastSet = 0;
+  calculatedMarkers.forEach((m, i) => {
+    if (m.set !== lastSet && lastSet !== 0) {
+      html += `<tr class="set-break"><td colspan="5">${m.setLabel}</td></tr>`;
+    }
+    lastSet = m.set;
+    html += `<tr>
+      <td>${String(m.track).padStart(2, '0')}</td>
+      <td style="font-family:var(--sans);color:var(--text);">${m.song}</td>
+      <td>${formatTime(m.startSeconds)}</td>
+      <td>${m.setLabel}</td>
+      <td style="font-size:0.7rem;color:var(--text-dim);">${m.name}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('markerTableContainer').innerHTML = html;
+}
+
+function updateImportNote() {
+  const notes = {
+    audition: 'Import: Markers panel → hamburger menu → Import → select .csv file',
+    reaper: 'Import: View → Region/Marker Manager → Options → Import regions/markers',
+    audacity: 'Import: File → Import → Labels → select .txt file',
+    protools: 'Import: Use EdiMarker tool to convert text to Pro Tools session markers',
+    logic: 'Import: File → Import → Marker file',
+    generic: 'Open in any spreadsheet or text editor. Universal reference format.'
+  };
+  const fmt = document.getElementById('exportFormat').value;
+  document.getElementById('importNote').textContent = notes[fmt] || '';
+}
+
+// ============================================================
+// EXPORT GENERATORS
+// ============================================================
+function generateAudition() {
+  let lines = ['Name\tStart\tDuration\tTime Format\tType\tDescription'];
+  calculatedMarkers.forEach(m => {
+    lines.push(`${m.name}\t${formatTime(m.startSeconds)}\t0:00.000\tdecimal\tCue\t${m.song}`);
+  });
+  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers.csv`, mime: 'text/csv' };
+}
+
+function generateReaper() {
+  let lines = ['#\tName\tStart\tEnd\tLength\tColor'];
+  calculatedMarkers.forEach((m, i) => {
+    const startSec = m.startSeconds.toFixed(3);
+    lines.push(`M${i+1}\t${m.song}\t${startSec}\t${startSec}\t0.000\t`);
+  });
+  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers_reaper.csv`, mime: 'text/csv' };
+}
+
+function generateAudacity() {
+  let lines = [];
+  calculatedMarkers.forEach(m => {
+    const t = m.startSeconds.toFixed(6);
+    lines.push(`${t}\t${t}\t${m.song}`);
+  });
+  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_labels.txt`, mime: 'text/plain' };
+}
+
+function generateProTools() {
+  let lines = ['#\tTime\tName'];
+  calculatedMarkers.forEach((m, i) => {
+    const h = Math.floor(m.startSeconds / 3600);
+    const min = Math.floor((m.startSeconds % 3600) / 60);
+    const sec = Math.floor(m.startSeconds % 60);
+    const frames = Math.floor((m.startSeconds % 1) * 30);
+    const tc = `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}:${String(frames).padStart(2,'0')}`;
+    lines.push(`${i+1}\t${tc}\t${m.song}`);
+  });
+  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers_protools.txt`, mime: 'text/plain' };
+}
+
+function generateLogic() {
+  let lines = [];
+  calculatedMarkers.forEach((m, i) => {
+    lines.push(`${formatTime(m.startSeconds)}\t${m.song}`);
+  });
+  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers_logic.txt`, mime: 'text/plain' };
+}
+
+function generateGeneric() {
+  let lines = ['Track,Song,Start (mm:ss),Start (seconds)'];
+  calculatedMarkers.forEach(m => {
+    const mins = Math.floor(m.startSeconds / 60);
+    const secs = Math.floor(m.startSeconds % 60);
+    lines.push(`${m.track},${m.song},${mins}:${String(secs).padStart(2,'0')},${m.startSeconds.toFixed(3)}`);
+  });
+  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers.csv`, mime: 'text/csv' };
+}
+
+function downloadMarkers() {
+  const fmt = document.getElementById('exportFormat').value;
+  const generators = { audition: generateAudition, reaper: generateReaper, audacity: generateAudacity, protools: generateProTools, logic: generateLogic, generic: generateGeneric };
+  const { content, filename, mime } = generators[fmt]();
+
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  localStorage.setItem('lastExportFormat', fmt);
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function showStatus(elId, msg, type) {
+  document.getElementById(elId).innerHTML = `<div class="status ${type}">${msg}</div>`;
+}
+
+// Init
+window.addEventListener('DOMContentLoaded', () => {
+  addGearRow('Mic', '');
+  addGearRow('Preamp', '');
+  addGearRow('Recorder', '');
+  loadPresetList();
+  const lastFmt = localStorage.getItem('lastExportFormat');
+  if (lastFmt) document.getElementById('exportFormat').value = lastFmt;
+  updateMarkerPreview();
+});
+</script>
+</body>
+</html>
