@@ -6,23 +6,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Concert Marker Generator</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --surface2: #1a1a26;
-    --border: #2a2a3a;
-    --text: #e0e0e8;
-    --text-dim: #888899;
-    --accent: #d4a843;
-    --accent-dim: #a8862f;
-    --green: #4ade80;
-    --red: #f87171;
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'DM Sans', sans-serif;
+    --bg: #f0ece6;
+    --surface: #faf8f5;
+    --surface2: #e8e3db;
+    --border: #d4cec4;
+    --text: #2c2825;
+    --text-dim: #7d756b;
+    --accent: #0d8a8a;
+    --accent-dim: #0a7070;
+    --accent-light: #e6f5f5;
+    --green: #3d8b5e;
+    --red: #c44040;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Inter', sans-serif;
   }
 
   body {
@@ -47,10 +48,10 @@
   }
 
   header h1 {
-    font-family: var(--mono);
-    font-size: 1.8rem;
+    font-family: var(--sans);
+    font-size: 1.6rem;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--text);
     letter-spacing: -0.5px;
   }
 
@@ -72,16 +73,17 @@
     background: var(--surface);
     border: 1px solid var(--border);
     color: var(--text-dim);
-    font-family: var(--mono);
+    font-family: var(--sans);
+    font-weight: 600;
     font-size: 0.8rem;
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 8px 18px;
+    border-radius: 20px;
     cursor: pointer;
     transition: all 0.2s;
   }
 
-  .step-btn:hover { border-color: var(--accent-dim); color: var(--text); }
-  .step-btn.active { background: var(--accent-dim); color: #fff; border-color: var(--accent); }
+  .step-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .step-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   .step-btn.complete { border-color: var(--green); color: var(--green); }
 
   /* Panels */
@@ -89,16 +91,18 @@
     display: none;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 28px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   }
 
   .panel.active { display: block; }
 
   .panel h2 {
-    font-family: var(--mono);
-    font-size: 1.1rem;
-    color: var(--accent);
+    font-family: var(--sans);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
     margin-bottom: 6px;
   }
 
@@ -121,19 +125,19 @@
 
   input, select {
     width: 100%;
-    background: var(--bg);
+    background: #fff;
     border: 1px solid var(--border);
     color: var(--text);
     font-family: var(--mono);
     font-size: 0.9rem;
     padding: 10px 12px;
-    border-radius: 6px;
+    border-radius: 8px;
     margin-bottom: 16px;
     outline: none;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
   }
 
-  input:focus, select:focus { border-color: var(--accent); }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
   input::placeholder { color: var(--text-dim); opacity: 0.5; }
 
   .row { display: flex; gap: 12px; }
@@ -144,7 +148,7 @@
     font-weight: 600;
     font-size: 0.85rem;
     padding: 10px 20px;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     border: none;
     transition: all 0.2s;
@@ -152,7 +156,7 @@
 
   .btn-primary {
     background: var(--accent);
-    color: #000;
+    color: #fff;
   }
   .btn-primary:hover { background: var(--accent-dim); }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -181,13 +185,14 @@
   .setlist-group { margin-bottom: 20px; }
 
   .set-header {
-    font-family: var(--mono);
-    font-size: 0.8rem;
+    font-family: var(--sans);
+    font-size: 0.75rem;
+    font-weight: 700;
     color: var(--accent);
     text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
+    letter-spacing: 1.5px;
+    padding: 8px 0;
+    border-bottom: 2px solid var(--accent);
     margin-bottom: 8px;
   }
 
@@ -218,9 +223,9 @@
   .gear-row .gear-value { flex: 1; }
 
   .marker-preview {
-    background: var(--bg);
-    border: 1px solid var(--accent-dim);
-    border-radius: 6px;
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
     padding: 12px 16px;
     font-family: var(--mono);
     font-size: 0.85rem;
@@ -229,14 +234,14 @@
     word-break: break-all;
   }
 
-  .marker-preview span { color: var(--text-dim); font-size: 0.75rem; display: block; margin-bottom: 4px; }
+  .marker-preview span { color: var(--text-dim); font-size: 0.75rem; display: block; margin-bottom: 4px; font-weight: 600; }
 
   /* Anchor Points */
   .anchor-info {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px;
+    background: var(--accent-light);
+    border: 1px solid rgba(13,138,138,0.2);
+    border-radius: 8px;
+    padding: 16px 20px;
     margin-bottom: 20px;
     font-size: 0.85rem;
     color: var(--text-dim);
@@ -284,9 +289,9 @@
     margin-top: 12px;
   }
 
-  .status.success { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
-  .status.error { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
-  .status.info { background: rgba(212,168,67,0.1); color: var(--accent); border: 1px solid rgba(212,168,67,0.2); }
+  .status.success { background: rgba(61,139,94,0.08); color: var(--green); border: 1px solid rgba(61,139,94,0.2); border-radius: 8px; }
+  .status.error { background: rgba(196,64,64,0.06); color: var(--red); border: 1px solid rgba(196,64,64,0.15); border-radius: 8px; }
+  .status.info { background: var(--accent-light); color: var(--accent); border: 1px solid rgba(13,138,138,0.2); border-radius: 8px; }
 
   .nav-buttons {
     display: flex;
@@ -317,8 +322,8 @@
 <body>
 <div class="container">
   <header>
-    <h1>// CONCERT MARKER GEN</h1>
-    <p>Generate DAW markers for your live recordings</p>
+    <h1>Concert Marker <span style="color:var(--accent);">Generator</span></h1>
+    <p>Create markers for your live recordings</p>
   </header>
 
   <div class="steps-nav">
