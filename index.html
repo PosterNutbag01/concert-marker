@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -526,7 +527,9 @@ async function fetchSetlist() {
     tracks.forEach(t => {
       const setLabel = t.set || t.set_name || '1';
       if (!setMap[setLabel]) setMap[setLabel] = [];
-      setMap[setLabel].push({ title: t.title, duration: t.duration, position: setMap[setLabel].length + 1 });
+      // phish.in returns duration in milliseconds — always convert to seconds
+      const durSec = Math.round(t.duration / 1000);
+      setMap[setLabel].push({ title: t.title, duration: durSec, position: setMap[setLabel].length + 1 });
     });
 
     showData.sets = Object.entries(setMap).map(([label, songs], i) => ({
@@ -550,7 +553,7 @@ function renderSetlist() {
     set.songs.forEach(song => {
       globalTrack++;
       const mins = Math.floor(song.duration / 60);
-      const secs = song.duration % 60;
+      const secs = Math.floor(song.duration % 60);
       const dur = `${mins}:${String(secs).padStart(2, '0')}`;
       html += `<div class="song-row">
         <span class="track-num">${String(globalTrack).padStart(2, '0')}</span>
