@@ -6,24 +6,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Concert Marker Generator</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --bg: #f0ece6;
-    --surface: #faf8f5;
-    --surface2: #e8e3db;
-    --border: #d4cec4;
-    --text: #2c2825;
-    --text-dim: #7d756b;
-    --accent: #0d8a8a;
-    --accent-dim: #0a7070;
-    --accent-light: #e6f5f5;
-    --green: #3d8b5e;
-    --red: #c44040;
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --surface2: #eeeeee;
+    --border: #d5d5d5;
+    --text: #1a1a1a;
+    --text-dim: #777777;
+    --accent: #1a1a1a;
+    --accent-dim: #333333;
+    --accent-light: #f0f0f0;
+    --green: #2d8a4e;
+    --red: #cc3333;
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'Inter', sans-serif;
+    --heading: 'Plus Jakarta Sans', sans-serif;
   }
 
   body {
@@ -42,48 +43,50 @@
 
   header {
     text-align: center;
-    padding: 40px 0 30px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 30px;
+    padding: 48px 0 32px;
+    border-bottom: 2px solid var(--text);
+    margin-bottom: 32px;
   }
 
   header h1 {
-    font-family: var(--sans);
-    font-size: 1.6rem;
-    font-weight: 700;
+    font-family: var(--heading);
+    font-size: 1.75rem;
+    font-weight: 800;
     color: var(--text);
-    letter-spacing: -0.5px;
+    letter-spacing: -0.75px;
   }
 
   header p {
     color: var(--text-dim);
-    font-size: 0.9rem;
-    margin-top: 6px;
+    font-size: 0.85rem;
+    margin-top: 8px;
+    font-weight: 500;
   }
 
   /* Steps Nav */
   .steps-nav {
     display: flex;
     justify-content: center;
-    gap: 8px;
-    margin-bottom: 30px;
+    gap: 6px;
+    margin-bottom: 32px;
   }
 
   .step-btn {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--border);
     color: var(--text-dim);
     font-family: var(--sans);
     font-weight: 600;
-    font-size: 0.8rem;
-    padding: 8px 18px;
-    border-radius: 20px;
+    font-size: 0.78rem;
+    padding: 7px 16px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
+    letter-spacing: -0.2px;
   }
 
-  .step-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .step-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .step-btn:hover { border-color: var(--text); color: var(--text); background: var(--accent-light); }
+  .step-btn.active { background: var(--text); color: #fff; border-color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
   .step-btn.complete { border-color: var(--green); color: var(--green); }
 
   /* Panels */
@@ -91,19 +94,20 @@
     display: none;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    border-radius: 10px;
+    padding: 32px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
   }
 
   .panel.active { display: block; }
 
   .panel h2 {
-    font-family: var(--sans);
-    font-size: 1.15rem;
+    font-family: var(--heading);
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
+    letter-spacing: -0.3px;
   }
 
   .panel .desc {
@@ -115,29 +119,29 @@
   /* Form Elements */
   label {
     display: block;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-weight: 600;
     color: var(--text-dim);
-    margin-bottom: 4px;
+    margin-bottom: 5px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
   }
 
   input, select {
     width: 100%;
     background: #fff;
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--border);
     color: var(--text);
     font-family: var(--mono);
-    font-size: 0.9rem;
-    padding: 10px 12px;
-    border-radius: 8px;
+    font-size: 0.88rem;
+    padding: 10px 14px;
+    border-radius: 7px;
     margin-bottom: 16px;
     outline: none;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
   }
 
-  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+  input:focus, select:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(26,26,26,0.06); }
   input::placeholder { color: var(--text-dim); opacity: 0.5; }
 
   .row { display: flex; gap: 12px; }
@@ -148,51 +152,58 @@
     font-weight: 600;
     font-size: 0.85rem;
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: 7px;
     cursor: pointer;
     border: none;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
   }
 
   .btn-primary {
-    background: var(--accent);
+    background: var(--text);
     color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+    padding: 11px 24px;
+    font-size: 0.88rem;
+    letter-spacing: -0.1px;
   }
-  .btn-primary:hover { background: var(--accent-dim); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary:hover { background: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
 
   .btn-secondary {
-    background: var(--surface2);
-    color: var(--text);
-    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    border: 1.5px solid var(--border);
+    padding: 9px 18px;
   }
-  .btn-secondary:hover { border-color: var(--accent-dim); }
+  .btn-secondary:hover { border-color: var(--text); color: var(--text); background: var(--accent-light); }
 
   .btn-small {
-    padding: 6px 12px;
+    padding: 6px 14px;
     font-size: 0.75rem;
   }
 
   .btn-danger {
     background: transparent;
-    color: var(--red);
-    border: 1px solid var(--red);
+    color: var(--text-dim);
+    border: 1.5px solid var(--border);
     padding: 4px 10px;
     font-size: 0.7rem;
   }
+  .btn-danger:hover { color: var(--red); border-color: var(--red); }
 
   /* Setlist Display */
   .setlist-group { margin-bottom: 20px; }
 
   .set-header {
-    font-family: var(--sans);
-    font-size: 0.75rem;
+    font-family: var(--heading);
+    font-size: 0.72rem;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--text);
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    padding: 8px 0;
-    border-bottom: 2px solid var(--accent);
+    padding: 10px 0 6px;
+    border-bottom: 2px solid var(--text);
     margin-bottom: 8px;
   }
 
@@ -200,15 +211,15 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 0.9rem;
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-size: 0.88rem;
   }
 
-  .song-row:nth-child(odd) { background: var(--surface2); }
-  .song-row .track-num { font-family: var(--mono); color: var(--text-dim); width: 40px; font-size: 0.8rem; }
-  .song-row .song-name { flex: 1; }
-  .song-row .duration { font-family: var(--mono); color: var(--text-dim); font-size: 0.85rem; }
+  .song-row:nth-child(odd) { background: var(--accent-light); }
+  .song-row .track-num { font-family: var(--mono); color: var(--text-dim); width: 36px; font-size: 0.78rem; }
+  .song-row .song-name { flex: 1; font-weight: 500; }
+  .song-row .duration { font-family: var(--mono); color: var(--text-dim); font-size: 0.82rem; font-weight: 500; }
 
   /* Gear Chain */
   .gear-row {
@@ -223,26 +234,27 @@
   .gear-row .gear-value { flex: 1; }
 
   .marker-preview {
-    background: var(--accent-light);
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    padding: 12px 16px;
+    background: var(--text);
+    border: none;
+    border-radius: 7px;
+    padding: 14px 18px;
     font-family: var(--mono);
     font-size: 0.85rem;
-    color: var(--accent);
-    margin-top: 12px;
+    color: #fff;
+    margin-top: 16px;
     word-break: break-all;
+    letter-spacing: 0.2px;
   }
 
-  .marker-preview span { color: var(--text-dim); font-size: 0.75rem; display: block; margin-bottom: 4px; font-weight: 600; }
+  .marker-preview span { color: rgba(255,255,255,0.5); font-size: 0.7rem; display: block; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
 
   /* Anchor Points */
   .anchor-info {
     background: var(--accent-light);
-    border: 1px solid rgba(13,138,138,0.2);
+    border: 1.5px solid var(--border);
     border-radius: 8px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
+    padding: 18px 22px;
+    margin-bottom: 22px;
     font-size: 0.85rem;
     color: var(--text-dim);
     line-height: 1.7;
@@ -253,30 +265,30 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.8rem;
-    margin-top: 16px;
+    margin-top: 20px;
   }
 
   .marker-table th {
     text-align: left;
-    font-family: var(--mono);
-    font-size: 0.7rem;
+    font-family: var(--heading);
+    font-size: 0.65rem;
     color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.8px;
+    padding: 10px 10px;
+    border-bottom: 2px solid var(--text);
   }
 
   .marker-table td {
-    padding: 6px 10px;
+    padding: 7px 10px;
     border-bottom: 1px solid var(--surface2);
     font-family: var(--mono);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
   }
 
   .marker-table tr.set-break td {
     background: var(--surface2);
-    color: var(--accent);
+    color: var(--text);
     font-weight: 600;
     border-bottom: 1px solid var(--border);
   }
@@ -289,16 +301,16 @@
     margin-top: 12px;
   }
 
-  .status.success { background: rgba(61,139,94,0.08); color: var(--green); border: 1px solid rgba(61,139,94,0.2); border-radius: 8px; }
-  .status.error { background: rgba(196,64,64,0.06); color: var(--red); border: 1px solid rgba(196,64,64,0.15); border-radius: 8px; }
-  .status.info { background: var(--accent-light); color: var(--accent); border: 1px solid rgba(13,138,138,0.2); border-radius: 8px; }
+  .status.success { background: rgba(45,138,78,0.08); color: var(--green); border: 1px solid rgba(45,138,78,0.2); border-radius: 8px; }
+  .status.error { background: rgba(204,51,51,0.06); color: var(--red); border: 1px solid rgba(204,51,51,0.15); border-radius: 8px; }
+  .status.info { background: var(--accent-light); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
 
   .nav-buttons {
     display: flex;
     justify-content: space-between;
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1.5px solid var(--surface2);
   }
 
   /* Import instructions */
@@ -311,18 +323,20 @@
 
   footer {
     text-align: center;
-    padding: 30px 0;
+    padding: 36px 0;
     color: var(--text-dim);
     font-size: 0.75rem;
+    letter-spacing: 0.2px;
   }
 
-  footer a { color: var(--accent); text-decoration: none; }
+  footer a { color: var(--text); text-decoration: none; font-weight: 600; }
+  footer a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>Concert Marker <span style="color:var(--accent);">Generator</span></h1>
+    <h1>Concert Marker Generator</h1>
     <p>Create markers for your live recordings</p>
   </header>
 
