@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -500,31 +501,30 @@
   <!-- STEP 4: Export -->
   <div class="panel" id="step4">
     <h2>Export</h2>
-    <p class="desc">Download your marker file and show info text file.</p>
+    <p class="desc">Preview your markers, then download.</p>
 
-    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:200px;">
-        <label>Marker Format</label>
-        <select id="exportFormat" onchange="updateImportNote()">
-          <option value="audition">Adobe Audition (.csv)</option>
-          <option value="reaper">Reaper (.csv)</option>
-          <option value="audacity">Audacity (.txt)</option>
-          <option value="protools">Pro Tools (text)</option>
-          <option value="logic">Logic Pro (.txt)</option>
-          <option value="generic">Generic CSV (.csv)</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px;align-items:flex-end;padding-bottom:16px;flex-wrap:wrap;">
-        <button class="btn-primary" onclick="downloadMarkers()">Download Markers</button>
+    <!-- Marker Table First -->
+    <div id="markerTableContainer" style="margin-bottom:24px;"></div>
+
+    <!-- Export Controls -->
+    <div style="background:var(--accent-light);border:1.5px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;">
+          <label>Marker Format</label>
+          <select id="exportFormat" onchange="updateImportNote()" style="margin-bottom:0;">
+            <option value="audition">Adobe Audition (.csv)</option>
+            <option value="reaper">Reaper (.csv)</option>
+            <option value="audacity">Audacity (.txt)</option>
+            <option value="protools">Pro Tools (text)</option>
+            <option value="logic">Logic Pro (.txt)</option>
+            <option value="generic">Generic CSV (.csv)</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="downloadMarkers()" style="padding:12px 32px;font-size:0.95rem;">Download Markers</button>
         <button class="btn-secondary" onclick="downloadTextFile()">Download Text File</button>
       </div>
+      <p class="import-note" id="importNote" style="margin-top:10px;margin-bottom:0;"></p>
     </div>
-    <p class="import-note" id="importNote"></p>
-      </div>
-    </div>
-    <p class="import-note" id="importNote"></p>
-
-    <div id="markerTableContainer"></div>
 
     <div class="nav-buttons">
       <button class="btn-secondary" onclick="goToStep(3)">← Back</button>
