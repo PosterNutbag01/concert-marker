@@ -350,25 +350,38 @@
   <!-- STEP 1: Show Info -->
   <div class="panel active" id="step1">
     <h2>Show Info</h2>
-    <p class="desc">Enter a date to fetch the setlist from phish.in, or enter songs manually.</p>
+    <p class="desc">Paste a LivePhish or nugs.net URL, or enter a date, or add songs manually.</p>
 
-    <div class="row">
-      <div>
-        <label>Band</label>
-        <input type="text" id="band" placeholder="ph" value="ph">
-      </div>
-      <div>
-        <label>Date (YYYY-MM-DD)</label>
-        <input type="text" id="showDate" placeholder="2025-07-15">
-      </div>
-    </div>
+    <label>Paste a Show URL</label>
+    <input type="text" id="showUrl" placeholder="https://www.livephish.com/LP-2666.html or any nugs.net show URL">
+    <button class="btn-primary" onclick="fetchFromUrl()" style="margin-bottom:16px;">Load Setlist from URL</button>
 
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button class="btn-primary" onclick="fetchSetlist()">Fetch from phish.in</button>
-      <button class="btn-secondary" onclick="showManualEntry()">Manual Entry</button>
+    <div style="border-top:1px solid var(--surface2);padding-top:16px;margin-bottom:16px;">
+      <p class="desc" style="margin-bottom:12px;">Or fetch from phish.in by date:</p>
+      <div class="row">
+        <div>
+          <label>Band</label>
+          <input type="text" id="band" placeholder="ph" value="ph">
+        </div>
+        <div>
+          <label>Date (YYYY-MM-DD)</label>
+          <input type="text" id="showDate" placeholder="2025-07-15">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn-secondary" onclick="fetchSetlist()">Fetch from phish.in</button>
+        <button class="btn-secondary" onclick="showManualEntry()">Manual Entry</button>
+      </div>
     </div>
 
     <div id="fetchStatus"></div>
+
+    <!-- Paste Content Fallback -->
+    <div id="pasteContentArea" style="display:none;margin-top:16px;">
+      <label>Paste the setlist from the page</label>
+      <textarea id="pastedContent" style="width:100%;height:200px;background:#fff;border:1.5px solid var(--border);border-radius:7px;font-family:var(--mono);font-size:0.82rem;padding:12px;color:var(--text);resize:vertical;" placeholder="Copy the setlist section from the LivePhish or nugs.net page and paste it here..."></textarea>
+      <button class="btn-primary btn-small" onclick="parseFromPastedContent()" style="margin-top:8px;">Parse Pasted Setlist</button>
+    </div>
 
     <!-- Manual Entry -->
     <div id="manualEntry" style="display:none;margin-top:16px;">
@@ -494,7 +507,7 @@
   </div>
 
   <footer>
-    <a href="https://github.com/PosterNutbag01/concert-marker">GitHub</a> · Data from <a href="https://phish.in">phish.in</a> · Built for tapers
+    <a href="https://github.com/PosterNutbag01/concert-marker">GitHub</a> · Works with <a href="https://www.livephish.com">LivePhish</a>, <a href="https://www.nugs.net">nugs.net</a>, <a href="https://phish.in">phish.in</a> · Built for tapers
   </footer>
 </div>
 
@@ -521,7 +534,208 @@ function goToStep(n) {
 }
 
 // ============================================================
-// STEP 1: FETCH SETLIST
+// STEP 1: URL-BASED FETCH
+// ============================================================
+function detectSource(url) {
+  if (url.includes('livephish.com')) return 'livephish';
+  if (url.includes('nugs.net')) return 'nugs';
+  if (url.includes('phish.in')) return 'phishin';
+  if (url.includes('relisten.net')) return 'relisten';
+  if (url.includes('archive.org')) return 'archive';
+  return 'unknown';
+}
+
+async function fetchFromUrl() {
+  const url = document.getElementById('showUrl').value.trim();
+  if (!url) { showStatus('fetchStatus', 'Paste a URL first.', 'error'); return; }
+
+  const source = detectSource(url);
+  
+  if (source === 'phishin') {
+    // Extract date from phish.in URL and use API
+    const dateMatch = url.match(/(\d{4}-\d{2}-\d{2})/);
+    if (dateMatch) {
+      document.getElementById('showDate').value = dateMatch[1];
+      document.getElementById('band').value = 'ph';
+      return fetchSetlist();
+    }
+  }
+  
+  if (source === 'relisten') {
+    // Extract date from relisten URL like /phish/2025/07/15
+    const dateMatch = url.match(/(\d{4})\/(\d{2})\/(\d{2})/);
+    if (dateMatch) {
+      document.getElementById('showDate').value = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+      document.getElementById('band').value = 'ph';
+      return fetchSetlist();
+    }
+  }
+
+  if (source === 'livephish' || source === 'nugs') {
+    showStatus('fetchStatus', `Fetching from ${source === 'livephish' ? 'LivePhish' : 'nugs.net'}...`, 'info');
+    
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const html = await resp.text();
+      parseNugsHtml(html, source);
+    } catch (e) {
+      // CORS likely blocked it — show paste fallback
+      showStatus('fetchStatus', 
+        'Could not fetch directly (browser security restriction). Copy the setlist from the page and paste it below.', 
+        'error'
+      );
+      document.getElementById('pasteContentArea').style.display = 'block';
+    }
+    return;
+  }
+
+  showStatus('fetchStatus', 'URL not recognized. Try LivePhish, nugs.net, phish.in, or relisten.net. Or use manual entry.', 'error');
+}
+
+function parseNugsHtml(html, source) {
+  // Parse the LivePhish / nugs.net HTML for setlist data
+  // Both sites have identical structure: set headings followed by song name + duration pairs
+  
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // Extract venue and date from page
+    const titleEl = doc.querySelector('h1, .venue-name, title');
+    const pageTitle = doc.querySelector('title')?.textContent || '';
+    
+    // Find all setlist sections — they use h6 headings for set labels
+    const setHeadings = doc.querySelectorAll('.setlist h6, h6');
+    const setlistContainer = doc.querySelector('.setlist') || doc.body;
+    
+    // Strategy: walk through the page text and find set headings + song/duration pairs
+    // The page structure has song names followed by duration numbers
+    const bodyText = setlistContainer.textContent || doc.body.textContent;
+    parseSetlistText(bodyText, source);
+    
+  } catch (e) {
+    showStatus('fetchStatus', `Error parsing page: ${e.message}. Try pasting the setlist text below.`, 'error');
+    document.getElementById('pasteContentArea').style.display = 'block';
+  }
+}
+
+function parseSetlistText(text, source) {
+  // Parse setlist text from LivePhish/nugs.net page or pasted content
+  // Format: Set headings followed by song names with durations in seconds
+  
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  const sets = [];
+  let currentSet = null;
+  let currentSongs = [];
+  let pendingSongName = null;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Detect set headings
+    const setMatch = line.match(/^(Set\s*(One|Two|Three|Four|1|2|3|4)|Encore\s*\d*)\s*$/i);
+    if (setMatch) {
+      // Save previous set
+      if (currentSet && currentSongs.length > 0) {
+        sets.push({ label: currentSet, songs: [...currentSongs] });
+        currentSongs = [];
+      }
+      currentSet = line;
+      pendingSongName = null;
+      continue;
+    }
+    
+    // Detect duration (a line that's just a number, typically 50-3000 for seconds)
+    const durMatch = line.match(/^(\d{2,5})$/);
+    if (durMatch && pendingSongName) {
+      const duration = parseInt(durMatch[1]);
+      // Sanity check: duration should be between 30 seconds and 60 minutes
+      if (duration >= 30 && duration <= 3600) {
+        currentSongs.push({ 
+          title: pendingSongName, 
+          duration: duration,  // LivePhish/nugs.net durations are in SECONDS
+          position: currentSongs.length + 1 
+        });
+        pendingSongName = null;
+        continue;
+      }
+    }
+    
+    // If we're inside a set and the line looks like a song name
+    if (currentSet && line.length > 1 && !line.match(/^\d+$/) && 
+        !line.match(/^(Share via|Buy|Stream|Add to|MP3|FLAC|ALAC|About|Log|Cart|Skip|Browse)/i)) {
+      // If we had a pending song with no duration, add it without duration
+      if (pendingSongName) {
+        // Previous song name had no duration — might be a non-song line, skip it
+      }
+      pendingSongName = line;
+    }
+  }
+  
+  // Save last set
+  if (currentSet && currentSongs.length > 0) {
+    sets.push({ label: currentSet, songs: [...currentSongs] });
+  }
+  
+  if (sets.length === 0) {
+    showStatus('fetchStatus', 'Could not find setlist data. Try pasting the setlist text below.', 'error');
+    document.getElementById('pasteContentArea').style.display = 'block';
+    return;
+  }
+  
+  // Normalize set labels
+  showData.sets = sets.map((set, i) => {
+    let label = set.label;
+    if (label.match(/encore/i)) label = 'Encore';
+    else if (label.match(/one|1/i)) label = 'Set 1';
+    else if (label.match(/two|2/i)) label = 'Set 2';
+    else if (label.match(/three|3/i)) label = 'Set 3';
+    else label = `Set ${i + 1}`;
+    
+    return {
+      number: i + 1,
+      label: label,
+      songs: set.songs
+    };
+  });
+  
+  // Try to detect band from URL or page
+  const urlEl = document.getElementById('showUrl').value;
+  if (urlEl.includes('livephish.com')) {
+    showData.band = 'ph';
+  } else {
+    // Try to extract artist from nugs.net URL
+    const artistMatch = urlEl.match(/live-download-of-([^-]+)/);
+    if (artistMatch) {
+      showData.band = artistMatch[1].toLowerCase().substring(0, 3);
+    }
+  }
+  
+  // Try to extract date from URL
+  const dateMatch = urlEl.match(/(\d{2})-(\d{2})-(\d{4})/);
+  if (dateMatch) {
+    showData.date = `${dateMatch[3]}-${dateMatch[1]}-${dateMatch[2]}`;
+  }
+  
+  const totalSongs = sets.reduce((sum, s) => sum + s.songs.length, 0);
+  showData.venue = source === 'livephish' ? 'LivePhish' : 'nugs.net';
+  
+  renderSetlist();
+  showStatus('fetchStatus', `Loaded ${totalSongs} songs across ${sets.length} sets`, 'success');
+  document.getElementById('toStep2').disabled = false;
+}
+
+function parseFromPastedContent() {
+  const text = document.getElementById('pastedContent').value;
+  if (!text.trim()) { showStatus('fetchStatus', 'Paste the setlist content first.', 'error'); return; }
+  
+  const source = detectSource(document.getElementById('showUrl').value || '') || 'manual';
+  parseSetlistText(text, source);
+}
+
+// ============================================================
+// STEP 1: PHISH.IN API FETCH
 // ============================================================
 async function fetchSetlist() {
   const date = document.getElementById('showDate').value.trim();
