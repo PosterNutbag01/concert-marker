@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -349,38 +350,25 @@
   <!-- STEP 1: Show Info -->
   <div class="panel active" id="step1">
     <h2>Show Info</h2>
-    <p class="desc">Paste a LivePhish or nugs.net URL, or enter a date, or add songs manually.</p>
+    <p class="desc">Enter a date to fetch the setlist from phish.in, or enter songs manually.</p>
 
-    <label>Paste a Show URL</label>
-    <input type="text" id="showUrl" placeholder="https://www.livephish.com/LP-2666.html or any nugs.net show URL">
-    <button class="btn-primary" onclick="fetchFromUrl()" style="margin-bottom:16px;">Load Setlist from URL</button>
+    <div class="row">
+      <div>
+        <label>Band</label>
+        <input type="text" id="band" placeholder="ph" value="ph">
+      </div>
+      <div>
+        <label>Date (YYYY-MM-DD)</label>
+        <input type="text" id="showDate" placeholder="2025-07-15">
+      </div>
+    </div>
 
-    <div style="border-top:1px solid var(--surface2);padding-top:16px;margin-bottom:16px;">
-      <p class="desc" style="margin-bottom:12px;">Or fetch from phish.in by date:</p>
-      <div class="row">
-        <div>
-          <label>Band</label>
-          <input type="text" id="band" placeholder="ph" value="ph">
-        </div>
-        <div>
-          <label>Date (YYYY-MM-DD)</label>
-          <input type="text" id="showDate" placeholder="2025-07-15">
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button class="btn-secondary" onclick="fetchSetlist()">Fetch from phish.in</button>
-        <button class="btn-secondary" onclick="showManualEntry()">Manual Entry</button>
-      </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="btn-primary" onclick="fetchSetlist()">Fetch from phish.in</button>
+      <button class="btn-secondary" onclick="showManualEntry()">Manual Entry</button>
     </div>
 
     <div id="fetchStatus"></div>
-
-    <!-- Paste Content Fallback -->
-    <div id="pasteContentArea" style="display:none;margin-top:16px;">
-      <label>Paste the setlist from the page</label>
-      <textarea id="pastedContent" style="width:100%;height:200px;background:#fff;border:1.5px solid var(--border);border-radius:7px;font-family:var(--mono);font-size:0.82rem;padding:12px;color:var(--text);resize:vertical;" placeholder="Copy the setlist section from the LivePhish or nugs.net page and paste it here..."></textarea>
-      <button class="btn-primary btn-small" onclick="parseFromPastedContent()" style="margin-top:8px;">Parse Pasted Setlist</button>
-    </div>
 
     <!-- Manual Entry -->
     <div id="manualEntry" style="display:none;margin-top:16px;">
@@ -506,7 +494,7 @@
   </div>
 
   <footer>
-    <a href="https://github.com/PosterNutbag01/concert-marker">GitHub</a> · Works with <a href="https://www.livephish.com">LivePhish</a>, <a href="https://www.nugs.net">nugs.net</a>, <a href="https://phish.in">phish.in</a> · Built for tapers
+    <a href="https://github.com/PosterNutbag01/concert-marker">GitHub</a> · Data from <a href="https://phish.in">phish.in</a> · Built for tapers
   </footer>
 </div>
 
