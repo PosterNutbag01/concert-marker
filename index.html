@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -360,7 +359,7 @@
 
   <div class="steps-nav">
     <button class="step-btn active" onclick="goToStep(1)">1. Show</button>
-    <button class="step-btn" onclick="goToStep(2)">2. Gear</button>
+    <button class="step-btn" onclick="goToStep(2)">2. Details</button>
     <button class="step-btn" onclick="goToStep(3)">3. Anchors</button>
     <button class="step-btn" onclick="goToStep(4)">4. Export</button>
   </div>
@@ -410,46 +409,76 @@
 
     <div class="nav-buttons">
       <div></div>
-      <button class="btn-primary" onclick="goToStep(2)" id="toStep2" disabled>Next: Gear Chain →</button>
+      <button class="btn-primary" onclick="goToStep(2)" id="toStep2" disabled>Next: Recording Details →</button>
     </div>
   </div>
 
-  <!-- STEP 2: Gear Chain -->
+  <!-- STEP 2: Recording Details -->
   <div class="panel" id="step2">
-    <h2>Gear Chain</h2>
-    <p class="desc">Add your gear in signal chain order. Drag rows to reorder. Both fields are editable — label is for your reference, value goes in the marker name.</p>
+    <h2>Recording Details</h2>
+    <p class="desc">Your gear chain builds the marker names. The recording info generates the text file that goes with your upload.</p>
 
-    <div id="gearRows"></div>
-    <button class="btn-secondary btn-small" onclick="addGearRow()" style="margin-bottom:16px;">+ Add Gear</button>
+    <!-- Gear Chain Section -->
+    <div style="margin-bottom:24px;">
+      <h3 style="font-family:var(--heading);font-size:0.95rem;font-weight:700;margin-bottom:4px;">Signal Chain</h3>
+      <p class="desc" style="margin-bottom:12px;">Add your gear in signal chain order. Drag rows to reorder. Both fields are editable.</p>
 
-    <div class="row" style="margin-top:12px;">
-      <div>
-        <label>Set Format</label>
-        <select id="setFormat">
-          <option value="s0">s01, s02 (default)</option>
-          <option value="se">se1, se2</option>
+      <div id="gearRows"></div>
+      <button class="btn-secondary btn-small" onclick="addGearRow()" style="margin-bottom:12px;">+ Add Gear</button>
+
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <button class="btn-secondary btn-small" onclick="savePreset()">Save Preset</button>
+        <select id="presetSelect" style="width:auto;margin-bottom:0;font-size:0.8rem;padding:6px;" onchange="loadPreset()">
+          <option value="">Load Preset...</option>
         </select>
       </div>
-      <div>
-        <label>Track Numbering</label>
-        <select id="trackNumbering">
-          <option value="per_set">Reset per set (t01, t01)</option>
-          <option value="continuous">Continuous (t01, t09)</option>
-        </select>
+
+      <div class="marker-preview" id="markerPreview">
+        <span>Preview:</span>
+        Loading...
       </div>
     </div>
 
-    <div class="marker-preview" id="markerPreview">
-      <span>Preview:</span>
-      Loading...
+    <!-- Recording Info Section -->
+    <div style="border-top:1.5px solid var(--surface2);padding-top:20px;margin-bottom:20px;">
+      <h3 style="font-family:var(--heading);font-size:0.95rem;font-weight:700;margin-bottom:4px;">Recording Info</h3>
+      <p class="desc" style="margin-bottom:12px;">This info goes into the text file included with your recording.</p>
+
+      <label>Source</label>
+      <input type="text" id="recSource" placeholder="e.g. DPA 4023 > Grace Design m101 > Sound Devices MixPre-3">
+
+      <label>Mic Location</label>
+      <input type="text" id="recLocation" placeholder="e.g. FOB, DFC, behind SBD, tapers section">
+
+      <label>Lineage</label>
+      <input type="text" id="recLineage" placeholder="e.g. SD card > Adobe Audition > FLAC">
+
+      <label>Recorded By</label>
+      <input type="text" id="recTaper" placeholder="Your name or taper handle">
+
+      <label>Notes (optional)</label>
+      <textarea id="recNotes" style="width:100%;height:80px;background:#fff;border:1.5px solid var(--border);border-radius:7px;font-family:var(--sans);font-size:0.88rem;padding:10px 14px;color:var(--text);resize:vertical;margin-bottom:16px;" placeholder="Any notes about the recording — patches, issues, etc."></textarea>
     </div>
 
-    <!-- Presets -->
-    <div style="margin-top:16px;display:flex;gap:8px;align-items:center;">
-      <button class="btn-secondary btn-small" onclick="savePreset()">Save Preset</button>
-      <select id="presetSelect" style="width:auto;margin-bottom:0;font-size:0.8rem;padding:6px;" onchange="loadPreset()">
-        <option value="">Load Preset...</option>
-      </select>
+    <!-- Marker Options -->
+    <div style="border-top:1.5px solid var(--surface2);padding-top:20px;">
+      <h3 style="font-family:var(--heading);font-size:0.95rem;font-weight:700;margin-bottom:12px;">Marker Options</h3>
+      <div class="row">
+        <div>
+          <label>Set Format</label>
+          <select id="setFormat">
+            <option value="s0">s01, s02 (default)</option>
+            <option value="se">se1, se2</option>
+          </select>
+        </div>
+        <div>
+          <label>Track Numbering</label>
+          <select id="trackNumbering">
+            <option value="per_set">Reset per set (t01, t01)</option>
+            <option value="continuous">Continuous (t01, t09)</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="nav-buttons">
@@ -489,11 +518,11 @@
   <!-- STEP 4: Export -->
   <div class="panel" id="step4">
     <h2>Export</h2>
-    <p class="desc">Preview your markers and download for your DAW.</p>
+    <p class="desc">Download your marker file and show info text file.</p>
 
-    <div class="row">
-      <div>
-        <label>Export Format</label>
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <label>Marker Format</label>
         <select id="exportFormat" onchange="updateImportNote()">
           <option value="audition">Adobe Audition (.csv)</option>
           <option value="reaper">Reaper (.csv)</option>
@@ -503,8 +532,12 @@
           <option value="generic">Generic CSV (.csv)</option>
         </select>
       </div>
-      <div style="display:flex;align-items:flex-end;padding-bottom:16px;">
-        <button class="btn-primary" onclick="downloadMarkers()" style="width:100%;">Download Markers</button>
+      <div style="display:flex;gap:8px;align-items:flex-end;padding-bottom:16px;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="downloadMarkers()">Download Markers</button>
+        <button class="btn-secondary" onclick="downloadTextFile()">Download Text File</button>
+      </div>
+    </div>
+    <p class="import-note" id="importNote"></p>
       </div>
     </div>
     <p class="import-note" id="importNote"></p>
@@ -1346,6 +1379,74 @@ function downloadMarkers() {
   URL.revokeObjectURL(url);
 
   localStorage.setItem('lastExportFormat', fmt);
+}
+
+function downloadTextFile() {
+  const band = document.getElementById('band').value.trim() || showData.band || '';
+  const date = showData.date || document.getElementById('showDate').value.trim() || '';
+  const venue = showData.venue || '';
+  const source = document.getElementById('recSource').value.trim() || '';
+  const location = document.getElementById('recLocation').value.trim() || '';
+  const lineage = document.getElementById('recLineage').value.trim() || '';
+  const taper = document.getElementById('recTaper').value.trim() || '';
+  const notes = document.getElementById('recNotes').value.trim() || '';
+
+  // Build the gear chain string from values
+  const gearValues = [...document.querySelectorAll('.gear-value')].map(el => el.value.trim()).filter(v => v);
+  const gearLabels = [...document.querySelectorAll('.gear-label')].map(el => el.value.trim());
+  
+  // Build source from gear chain if not manually entered
+  let sourceStr = source;
+  if (!sourceStr && gearValues.length > 0) {
+    sourceStr = gearValues.map((v, i) => {
+      const label = gearLabels[i];
+      return label ? `${label}: ${v}` : v;
+    }).join(' > ');
+  }
+
+  // Build setlist text
+  let setlistText = '';
+  showData.sets.forEach(set => {
+    setlistText += `${set.label}\n\n`;
+    set.songs.forEach((song, i) => {
+      const mins = Math.floor(song.duration / 60);
+      const secs = song.duration % 60;
+      const dur = song.duration > 0 ? ` [${mins}:${String(secs).padStart(2, '0')}]` : '';
+      setlistText += `${song.title}${dur}\n`;
+    });
+    setlistText += '\n';
+  });
+
+  // Assemble the text file
+  let text = '';
+  text += `${band.toUpperCase()}\n`;
+  text += `${venue}\n`;
+  text += `${date}\n`;
+  text += '\n';
+  if (sourceStr) text += `Source: ${sourceStr}\n`;
+  if (location) text += `Location: ${location}\n`;
+  if (lineage) text += `Lineage: ${lineage}\n`;
+  text += '\n';
+  if (taper) text += `Recorded By: ${taper}\n`;
+  text += '\n';
+  text += setlistText;
+  if (notes) {
+    text += `Notes:\n${notes}\n`;
+  }
+
+  // Generate filename
+  const dateForFile = date.replace(/-/g, '.');
+  const filename = `${band}${dateForFile}_info.txt`;
+
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ============================================================
