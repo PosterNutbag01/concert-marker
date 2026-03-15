@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -391,8 +390,9 @@
     </div>
 
     <div style="border-top:1.5px solid var(--surface2);padding-top:16px;margin-bottom:16px;">
-      <label>Archive.org Identifier or URL</label>
-      <input type="text" id="archiveId" placeholder="e.g. phish2019-08-31.cmc6mk4.flac16 or paste full archive.org URL">
+      <label>Archive.org URL or Identifier</label>
+      <p style="font-size:0.78rem;color:var(--text-dim);margin:-12px 0 8px;">Band, date, and setlist auto-populate</p>
+      <input type="text" id="archiveId" placeholder="e.g. https://archive.org/details/phish2019-08-31.cmc6mk4.flac16">
       <button class="btn-primary" onclick="fetchFromArchive()">Fetch from Archive.org</button>
     </div>
 
