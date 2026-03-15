@@ -791,19 +791,57 @@ async function fetchFromArchive() {
     showData.venue = meta.venue || '';
     showData.date = meta.date || '';
     
-    // Try to extract band from identifier or metadata
-    const band = document.getElementById('band').value.trim();
-    showData.bandFull = document.getElementById('bandFull').value.trim() || meta.creator || band;
-    if (band) {
-      showData.band = band.toLowerCase().replace(/\s+/g, '');
-    } else if (meta.creator) {
-      showData.band = meta.creator.toLowerCase().replace(/\s+/g, '').substring(0, 3);
+    // Auto-populate band full name from archive.org creator metadata
+    const creator = meta.creator || meta.artist || '';
+    if (creator && !document.getElementById('bandFull').value.trim()) {
+      // Creator might be an array
+      const bandName = Array.isArray(creator) ? creator[0] : creator;
+      showData.bandFull = bandName;
+      document.getElementById('bandFull').value = bandName;
+    } else {
+      showData.bandFull = document.getElementById('bandFull').value.trim() || creator;
     }
 
-    // Try to extract date from identifier if not in metadata
+    // Auto-populate abbreviation from identifier or creator
+    // Common patterns: "phish2019-08-31", "gd1977-05-08", "moe2026-02-10", "goose2025-09-19"
+    const bandFromId = input.match(/^([a-zA-Z]+)\d{4}/);
+    if (!document.getElementById('band').value.trim() || document.getElementById('band').value === 'ph') {
+      let abbrev = '';
+      if (bandFromId) {
+        abbrev = bandFromId[1].toLowerCase();
+      } else if (creator) {
+        const cName = Array.isArray(creator) ? creator[0] : creator;
+        // Common band abbreviations
+        const knownAbbrevs = {
+          'phish': 'ph', 'grateful dead': 'gd', 'goose': 'goo', 'moe.': 'moe', 'moe': 'moe',
+          'widespread panic': 'wsp', 'string cheese incident': 'sci', 'the string cheese incident': 'sci',
+          'umphrey\'s mcgee': 'um', 'billy strings': 'bsm', 'trey anastasio': 'tab',
+          'trey anastasio band': 'tab', 'dead & company': 'dc', 'dead and company': 'dc',
+          'dispatch': 'dis', 'sts9': 'sts9', 'sound tribe sector 9': 'sts9',
+          'the disco biscuits': 'tdb', 'disco biscuits': 'tdb', 'lotus': 'lot',
+          'gov\'t mule': 'gm', 'medeski martin and wood': 'mmw', 'spafford': 'spa',
+          'pigeons playing ping pong': 'pppp', 'dopapod': 'dop', 'aqueous': 'aq',
+          'lettuce': 'let', 'snarky puppy': 'sp', 'khruangbin': 'khr',
+        };
+        const lower = cName.toLowerCase();
+        abbrev = knownAbbrevs[lower] || lower.replace(/[^a-z]/g, '').substring(0, 3);
+      }
+      if (abbrev) {
+        showData.band = abbrev;
+        document.getElementById('band').value = abbrev;
+      }
+    } else {
+      showData.band = document.getElementById('band').value.trim().toLowerCase().replace(/\s+/g, '');
+    }
+
+    // Auto-populate date from identifier or metadata
     if (!showData.date) {
       const dateMatch = input.match(/(\d{4})-(\d{2})-(\d{2})/);
       if (dateMatch) showData.date = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+    }
+    // Put date in the form field
+    if (showData.date && !document.getElementById('showDate').value.trim()) {
+      document.getElementById('showDate').value = showData.date;
     }
 
     // Filter to original audio files (FLAC, SHN, WAV — skip MP3 derivatives, metadata files, etc.)
@@ -1421,9 +1459,10 @@ function downloadTextFile() {
     text += `Notes:\n${notes}\n`;
   }
 
-  // Generate filename
+  // Generate filename — abbreviation.date.signalchain.txt
   const dateForFile = date.replace(/-/g, '.');
-  const filename = `${band}${dateForFile}_info.txt`;
+  const gearStr = gearValues.length ? '.' + gearValues.join('.') : '';
+  const filename = `${band}${dateForFile}${gearStr}.txt`;
 
   const blob = new Blob([text], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
