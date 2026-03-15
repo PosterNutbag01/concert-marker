@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -225,11 +226,29 @@
     display: flex;
     gap: 8px;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    background: var(--accent-light);
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    cursor: grab;
   }
 
-  .gear-row input { margin-bottom: 0; }
-  .gear-row .gear-label { width: 120px; flex-shrink: 0; }
+  .gear-row:active { cursor: grabbing; border-color: var(--text); }
+
+  .gear-row .drag-handle {
+    color: var(--border);
+    font-size: 1.1rem;
+    cursor: grab;
+    user-select: none;
+    padding: 0 2px;
+    line-height: 1;
+  }
+
+  .gear-row .drag-handle:hover { color: var(--text-dim); }
+
+  .gear-row input { margin-bottom: 0; background: #fff; font-size: 0.85rem; }
+  .gear-row .gear-label { width: 110px; flex-shrink: 0; font-size: 0.82rem; }
   .gear-row .gear-value { flex: 1; }
 
   .marker-preview {
@@ -398,7 +417,7 @@
   <!-- STEP 2: Gear Chain -->
   <div class="panel" id="step2">
     <h2>Gear Chain</h2>
-    <p class="desc">Build your signal chain. Values are joined with periods in the marker name. Leave empty for no gear chain.</p>
+    <p class="desc">Add your gear in signal chain order. Drag rows to reorder. Both fields are editable — label is for your reference, value goes in the marker name.</p>
 
     <div id="gearRows"></div>
     <button class="btn-secondary btn-small" onclick="addGearRow()" style="margin-bottom:16px;">+ Add Gear</button>
@@ -1025,11 +1044,43 @@ goToStep = function(n) {
 function addGearRow(label = '', value = '') {
   const div = document.createElement('div');
   div.className = 'gear-row';
+  div.draggable = true;
   div.innerHTML = `
-    <input type="text" class="gear-label" placeholder="Label (optional)" value="${label}" oninput="updateMarkerPreview()">
-    <input type="text" class="gear-value" placeholder="Value (e.g. dpa4023)" value="${value}" oninput="updateMarkerPreview()">
-    <button class="btn-danger" onclick="this.parentElement.remove();updateMarkerPreview();">×</button>
+    <span class="drag-handle" title="Drag to reorder">⠿</span>
+    <input type="text" class="gear-label" placeholder="e.g. Mic, Preamp..." value="${label}" oninput="updateMarkerPreview()">
+    <input type="text" class="gear-value" placeholder="e.g. dpa4023, v3, 788t" value="${value}" oninput="updateMarkerPreview()">
+    <button class="btn-danger" onclick="this.parentElement.remove();updateMarkerPreview();" title="Remove">×</button>
   `;
+  
+  // Drag and drop reordering
+  div.addEventListener('dragstart', (e) => {
+    e.dataTransfer.effectAllowed = 'move';
+    div.style.opacity = '0.5';
+    window._draggedGear = div;
+  });
+  div.addEventListener('dragend', () => {
+    div.style.opacity = '1';
+    window._draggedGear = null;
+    document.querySelectorAll('.gear-row').forEach(r => r.style.borderTop = '');
+  });
+  div.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    div.style.borderTop = '2px solid var(--text)';
+  });
+  div.addEventListener('dragleave', () => {
+    div.style.borderTop = '';
+  });
+  div.addEventListener('drop', (e) => {
+    e.preventDefault();
+    div.style.borderTop = '';
+    if (window._draggedGear && window._draggedGear !== div) {
+      const container = document.getElementById('gearRows');
+      container.insertBefore(window._draggedGear, div);
+      updateMarkerPreview();
+    }
+  });
+  
   document.getElementById('gearRows').appendChild(div);
   updateMarkerPreview();
 }
