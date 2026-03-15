@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -371,8 +372,12 @@
 
     <div class="row">
       <div>
-        <label>Band</label>
-        <input type="text" id="band" placeholder="ph" value="ph">
+        <label>Band Name</label>
+        <input type="text" id="bandFull" placeholder="e.g. Phish, Goose, moe.">
+      </div>
+      <div>
+        <label>Abbreviation (for markers)</label>
+        <input type="text" id="band" placeholder="e.g. ph, goo, moe" value="ph">
       </div>
       <div>
         <label>Date (YYYY-MM-DD)</label>
@@ -536,7 +541,7 @@
 // ============================================================
 // STATE
 // ============================================================
-let showData = { band: 'ph', date: '', venue: '', sets: [] };
+let showData = { band: 'ph', bandFull: '', date: '', venue: '', sets: [] };
 let gearChain = [];
 let calculatedMarkers = [];
 let manualSetCount = 1;
@@ -788,6 +793,7 @@ async function fetchFromArchive() {
     
     // Try to extract band from identifier or metadata
     const band = document.getElementById('band').value.trim();
+    showData.bandFull = document.getElementById('bandFull').value.trim() || meta.creator || band;
     if (band) {
       showData.band = band.toLowerCase().replace(/\s+/g, '');
     } else if (meta.creator) {
@@ -919,6 +925,7 @@ async function fetchSetlist() {
   if (!date) { showStatus('fetchStatus', 'Enter a date.', 'error'); return; }
 
   showData.band = band.toLowerCase().replace(/\s+/g, '');
+  showData.bandFull = document.getElementById('bandFull').value.trim() || band;
   showData.date = date;
 
   showStatus('fetchStatus', 'Fetching from phish.in...', 'info');
@@ -1360,12 +1367,14 @@ function downloadMarkers() {
 
 function downloadTextFile() {
   const band = document.getElementById('band').value.trim() || showData.band || '';
+  const bandFull = document.getElementById('bandFull').value.trim() || showData.bandFull || band;
   const date = showData.date || document.getElementById('showDate').value.trim() || '';
   const venue = showData.venue || '';
   const source = document.getElementById('recSource').value.trim() || '';
   const location = document.getElementById('recLocation').value.trim() || '';
   const lineage = document.getElementById('recLineage').value.trim() || '';
   const taper = document.getElementById('recTaper').value.trim() || '';
+  const editor = document.getElementById('recEditor').value.trim() || '';
   const notes = document.getElementById('recNotes').value.trim() || '';
 
   // Build the gear chain string from values
@@ -1394,9 +1403,9 @@ function downloadTextFile() {
     setlistText += '\n';
   });
 
-  // Assemble the text file
+  // Assemble the text file — use full band name, not abbreviation
   let text = '';
-  text += `${band.toUpperCase()}\n`;
+  text += `${bandFull}\n`;
   text += `${venue}\n`;
   text += `${date}\n`;
   text += '\n';
@@ -1405,6 +1414,7 @@ function downloadTextFile() {
   if (lineage) text += `Lineage: ${lineage}\n`;
   text += '\n';
   if (taper) text += `Recorded By: ${taper}\n`;
+  if (editor) text += `Processed and Edited By: ${editor}\n`;
   text += '\n';
   text += setlistText;
   if (notes) {
