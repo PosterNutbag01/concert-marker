@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,1493 +7,192 @@
 <title>Concert Marker Generator</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  :root {
-    --bg: #f5f5f5;
-    --surface: #ffffff;
-    --surface2: #eeeeee;
-    --border: #d5d5d5;
-    --text: #1a1a1a;
-    --text-dim: #777777;
-    --accent: #1a1a1a;
-    --accent-dim: #333333;
-    --accent-light: #f0f0f0;
-    --green: #2d8a4e;
-    --red: #cc3333;
-    --mono: 'IBM Plex Mono', monospace;
-    --sans: 'Inter', sans-serif;
-    --heading: 'Plus Jakarta Sans', sans-serif;
-  }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    line-height: 1.6;
-    min-height: 100vh;
-  }
-
-  .container {
-    max-width: 860px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-
-  header {
-    text-align: center;
-    padding: 48px 0 32px;
-    border-bottom: 2px solid var(--text);
-    margin-bottom: 32px;
-  }
-
-  header h1 {
-    font-family: var(--heading);
-    font-size: 1.75rem;
-    font-weight: 800;
-    color: var(--text);
-    letter-spacing: -0.75px;
-  }
-
-  header p {
-    color: var(--text-dim);
-    font-size: 0.85rem;
-    margin-top: 8px;
-    font-weight: 500;
-  }
-
-  /* Steps Nav */
-  .steps-nav {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin-bottom: 32px;
-  }
-
-  .step-btn {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    color: var(--text-dim);
-    font-family: var(--sans);
-    font-weight: 600;
-    font-size: 0.78rem;
-    padding: 7px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    letter-spacing: -0.2px;
-  }
-
-  .step-btn:hover { border-color: var(--text); color: var(--text); background: var(--accent-light); }
-  .step-btn.active { background: var(--text); color: #fff; border-color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-  .step-btn.complete { border-color: var(--green); color: var(--green); }
-
-  /* Panels */
-  .panel {
-    display: none;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 32px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
-  }
-
-  .panel.active { display: block; }
-
-  .panel h2 {
-    font-family: var(--heading);
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 4px;
-    letter-spacing: -0.3px;
-  }
-
-  .panel .desc {
-    color: var(--text-dim);
-    font-size: 0.85rem;
-    margin-bottom: 20px;
-  }
-
-  /* Form Elements */
-  label {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: var(--text-dim);
-    margin-bottom: 5px;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-  }
-
-  input, select {
-    width: 100%;
-    background: #fff;
-    border: 1.5px solid var(--border);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 0.88rem;
-    padding: 10px 14px;
-    border-radius: 7px;
-    margin-bottom: 16px;
-    outline: none;
-    transition: all 0.15s ease;
-  }
-
-  input:focus, select:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(26,26,26,0.06); }
-  input::placeholder { color: var(--text-dim); opacity: 0.5; }
-
-  .row { display: flex; gap: 12px; }
-  .row > * { flex: 1; }
-
-  button {
-    font-family: var(--sans);
-    font-weight: 600;
-    font-size: 0.85rem;
-    padding: 10px 20px;
-    border-radius: 7px;
-    cursor: pointer;
-    border: none;
-    transition: all 0.15s ease;
-  }
-
-  .btn-primary {
-    background: var(--text);
-    color: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
-    padding: 11px 24px;
-    font-size: 0.88rem;
-    letter-spacing: -0.1px;
-  }
-  .btn-primary:hover { background: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transform: translateY(-1px); }
-  .btn-primary:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
-  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
-
-  .btn-secondary {
-    background: transparent;
-    color: var(--text-dim);
-    border: 1.5px solid var(--border);
-    padding: 9px 18px;
-  }
-  .btn-secondary:hover { border-color: var(--text); color: var(--text); background: var(--accent-light); }
-
-  .btn-small {
-    padding: 6px 14px;
-    font-size: 0.75rem;
-  }
-
-  .btn-danger {
-    background: transparent;
-    color: var(--text-dim);
-    border: 1.5px solid var(--border);
-    padding: 4px 10px;
-    font-size: 0.7rem;
-  }
-  .btn-danger:hover { color: var(--red); border-color: var(--red); }
-
-  /* Setlist Display */
-  .setlist-group { margin-bottom: 20px; }
-
-  .set-header {
-    font-family: var(--heading);
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--text);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    padding: 10px 0 6px;
-    border-bottom: 2px solid var(--text);
-    margin-bottom: 8px;
-  }
-
-  .song-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 7px 10px;
-    border-radius: 5px;
-    font-size: 0.88rem;
-  }
-
-  .song-row:nth-child(odd) { background: var(--accent-light); }
-  .song-row .track-num { font-family: var(--mono); color: var(--text-dim); width: 36px; font-size: 0.78rem; }
-  .song-row .song-name { flex: 1; font-weight: 500; }
-  .song-row .duration { font-family: var(--mono); color: var(--text-dim); font-size: 0.82rem; font-weight: 500; }
-
-  /* Gear Chain */
-  .gear-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 6px;
-    padding: 6px 8px;
-    background: var(--accent-light);
-    border: 1.5px solid var(--border);
-    border-radius: 7px;
-    cursor: grab;
-  }
-
-  .gear-row:active { cursor: grabbing; border-color: var(--text); }
-
-  .gear-row .drag-handle {
-    color: var(--border);
-    font-size: 1.1rem;
-    cursor: grab;
-    user-select: none;
-    padding: 0 2px;
-    line-height: 1;
-  }
-
-  .gear-row .drag-handle:hover { color: var(--text-dim); }
-
-  .gear-row input { margin-bottom: 0; background: #fff; font-size: 0.85rem; }
-  .gear-row .gear-label { width: 110px; flex-shrink: 0; font-size: 0.82rem; }
-  .gear-row .gear-value { flex: 1; }
-
-  .marker-preview {
-    background: var(--text);
-    border: none;
-    border-radius: 7px;
-    padding: 14px 18px;
-    font-family: var(--mono);
-    font-size: 0.85rem;
-    color: #fff;
-    margin-top: 16px;
-    word-break: break-all;
-    letter-spacing: 0.2px;
-  }
-
-  .marker-preview span { color: rgba(255,255,255,0.5); font-size: 0.7rem; display: block; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-
-  /* Anchor Points */
-  .anchor-info {
-    background: var(--accent-light);
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 18px 22px;
-    margin-bottom: 22px;
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    line-height: 1.7;
-  }
-
-  /* Marker Table */
-  .marker-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8rem;
-    margin-top: 20px;
-  }
-
-  .marker-table th {
-    text-align: left;
-    font-family: var(--heading);
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    padding: 10px 10px;
-    border-bottom: 2px solid var(--text);
-  }
-
-  .marker-table td {
-    padding: 7px 10px;
-    border-bottom: 1px solid var(--surface2);
-    font-family: var(--mono);
-    font-size: 0.78rem;
-  }
-
-  .marker-table tr.set-break td {
-    background: var(--surface2);
-    color: var(--text);
-    font-weight: 600;
-    border-bottom: 1px solid var(--border);
-  }
-
-  /* Status Messages */
-  .status {
-    font-size: 0.85rem;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin-top: 12px;
-  }
-
-  .status.success { background: rgba(45,138,78,0.08); color: var(--green); border: 1px solid rgba(45,138,78,0.2); border-radius: 8px; }
-  .status.error { background: rgba(204,51,51,0.06); color: var(--red); border: 1px solid rgba(204,51,51,0.15); border-radius: 8px; }
-  .status.info { background: var(--accent-light); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
-
-  .nav-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 1.5px solid var(--surface2);
-  }
-
-  /* Import instructions */
-  .import-note {
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    margin-top: 4px;
-    font-style: italic;
-  }
-
-  footer {
-    text-align: center;
-    padding: 36px 0;
-    color: var(--text-dim);
-    font-size: 0.75rem;
-    letter-spacing: 0.2px;
-  }
-
-  footer a { color: var(--text); text-decoration: none; font-weight: 600; }
-  footer a:hover { text-decoration: underline; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#f5f5f5;--surface:#ffffff;--surface2:#eeeeee;--border:#d5d5d5;--text:#1a1a1a;--text-dim:#777777;--accent:#1a1a1a;--accent-dim:#333333;--accent-light:#f0f0f0;--green:#2d8a4e;--red:#cc3333;--mono:'IBM Plex Mono',monospace;--sans:'Inter',sans-serif;--heading:'Plus Jakarta Sans',sans-serif}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;min-height:100vh}
+  .container{max-width:860px;margin:0 auto;padding:20px}
+  header{text-align:center;padding:48px 0 32px;border-bottom:2px solid var(--text);margin-bottom:32px}
+  header h1{font-family:var(--heading);font-size:1.75rem;font-weight:800;color:var(--text);letter-spacing:-0.75px}
+  header p{color:var(--text-dim);font-size:0.85rem;margin-top:8px;font-weight:500}
+  .steps-nav{display:flex;justify-content:center;gap:6px;margin-bottom:32px}
+  .step-btn{background:var(--surface);border:1.5px solid var(--border);color:var(--text-dim);font-family:var(--sans);font-weight:600;font-size:0.78rem;padding:7px 16px;border-radius:6px;cursor:pointer;transition:all 0.15s ease}
+  .step-btn:hover{border-color:var(--text);color:var(--text);background:var(--accent-light)}
+  .step-btn.active{background:var(--text);color:#fff;border-color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+  .panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+  .panel.active{display:block}
+  .panel h2{font-family:var(--heading);font-size:1.2rem;font-weight:700;margin-bottom:4px}
+  .panel .desc{color:var(--text-dim);font-size:0.85rem;margin-bottom:20px}
+  label{display:block;font-size:0.72rem;font-weight:600;color:var(--text-dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.6px}
+  input,select{width:100%;background:#fff;border:1.5px solid var(--border);color:var(--text);font-family:var(--mono);font-size:0.88rem;padding:10px 14px;border-radius:7px;margin-bottom:16px;outline:none}
+  input:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(26,26,26,0.06)}
+  input::placeholder{color:var(--text-dim);opacity:0.5}
+  .row{display:flex;gap:12px}.row>*{flex:1}
+  button{font-family:var(--sans);font-weight:600;font-size:0.85rem;padding:10px 20px;border-radius:7px;cursor:pointer;border:none;transition:all 0.15s ease}
+  .btn-primary{background:var(--text);color:#fff;padding:11px 24px;font-size:0.88rem}
+  .btn-primary:hover{background:#000}.btn-primary:disabled{opacity:0.35;cursor:not-allowed}
+  .btn-secondary{background:transparent;color:var(--text-dim);border:1.5px solid var(--border);padding:9px 18px}
+  .btn-secondary:hover{border-color:var(--text);color:var(--text);background:var(--accent-light)}
+  .btn-small{padding:6px 14px;font-size:0.75rem}
+  .btn-danger{background:transparent;color:var(--text-dim);border:1.5px solid var(--border);padding:4px 10px;font-size:0.7rem}
+  .btn-danger:hover{color:var(--red);border-color:var(--red)}
+  .setlist-group{margin-bottom:20px}
+  .set-header{font-family:var(--heading);font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:10px 0 6px;border-bottom:2px solid var(--text);margin-bottom:8px}
+  .song-row{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:5px;font-size:0.88rem}
+  .song-row:nth-child(odd){background:var(--accent-light)}
+  .song-row .track-num{font-family:var(--mono);color:var(--text-dim);width:36px;font-size:0.78rem}
+  .song-row .song-name{flex:1;font-weight:500}
+  .song-row .duration{font-family:var(--mono);color:var(--text-dim);font-size:0.82rem}
+  .gear-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;padding:6px 8px;background:var(--accent-light);border:1.5px solid var(--border);border-radius:7px;cursor:grab}
+  .gear-row input{margin-bottom:0;background:#fff;font-size:0.85rem}
+  .gear-row .gear-label{width:110px;flex-shrink:0;font-size:0.82rem}
+  .gear-row .gear-value{flex:1}
+  .marker-preview{background:var(--text);border:none;border-radius:7px;padding:14px 18px;font-family:var(--mono);font-size:0.85rem;color:#fff;margin-top:16px;word-break:break-all}
+  .marker-preview span{color:rgba(255,255,255,0.5);font-size:0.7rem;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+  .anchor-info{background:var(--accent-light);border:1.5px solid var(--border);border-radius:8px;padding:18px 22px;margin-bottom:22px;font-size:0.85rem;color:var(--text-dim);line-height:1.7}
+  .marker-table{width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:20px}
+  .marker-table th{text-align:left;font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.8px;padding:10px;border-bottom:2px solid var(--text)}
+  .marker-table td{padding:7px 10px;border-bottom:1px solid var(--surface2);font-family:var(--mono);font-size:0.78rem}
+  .marker-table tr.set-break td{background:var(--surface2);font-weight:600;border-bottom:1px solid var(--border)}
+  .status{font-size:0.85rem;padding:8px 12px;border-radius:6px;margin-top:12px}
+  .status.success{background:rgba(45,138,78,0.08);color:var(--green);border:1px solid rgba(45,138,78,0.2)}
+  .status.error{background:rgba(204,51,51,0.06);color:var(--red);border:1px solid rgba(204,51,51,0.15)}
+  .status.info{background:var(--accent-light);color:var(--text);border:1px solid var(--border)}
+  .nav-buttons{display:flex;justify-content:space-between;margin-top:28px;padding-top:20px;border-top:1.5px solid var(--surface2)}
+  .import-note{font-size:0.8rem;color:var(--text-dim);margin-top:4px;font-style:italic}
+  footer{text-align:center;padding:36px 0;color:var(--text-dim);font-size:0.75rem}
+  footer a{color:var(--text);text-decoration:none;font-weight:600}
 </style>
 </head>
 <body>
 <div class="container">
-  <header>
-    <h1>Concert Marker Generator</h1>
-    <p>Create markers for your live recordings</p>
-  </header>
-
+  <header><h1>Concert Marker Generator</h1><p>Create markers for your live recordings</p></header>
   <div class="steps-nav">
     <button class="step-btn active" onclick="goToStep(1)">1. Show</button>
     <button class="step-btn" onclick="goToStep(2)">2. Details</button>
     <button class="step-btn" onclick="goToStep(3)">3. Anchors</button>
     <button class="step-btn" onclick="goToStep(4)">4. Export</button>
   </div>
-
-  <!-- STEP 1: Show Info -->
   <div class="panel active" id="step1">
-    <h2>Show Info</h2>
-    <p class="desc">Fetch a setlist from phish.in or archive.org, or enter songs manually.</p>
-
-    <div class="row">
-      <div>
-        <label>Band Name</label>
-        <input type="text" id="bandFull" placeholder="e.g. Phish, Goose, moe.">
-      </div>
-      <div>
-        <label>Abbreviation (for markers)</label>
-        <input type="text" id="band" placeholder="e.g. ph, goo, moe" value="ph">
-      </div>
-      <div>
-        <label>Date (YYYY-MM-DD)</label>
-        <input type="text" id="showDate" placeholder="2025-07-15">
-      </div>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button class="btn-primary" onclick="fetchSetlist()">Fetch from phish.in</button>
-      <button class="btn-secondary" onclick="showManualEntry()">Manual Entry</button>
-    </div>
-
-    <div style="border-top:1.5px solid var(--surface2);padding-top:16px;margin-bottom:16px;">
-      <label>Archive.org URL or Identifier</label>
-      <p style="font-size:0.78rem;color:var(--text-dim);margin:-12px 0 8px;">Band, date, and setlist auto-populate</p>
-      <input type="text" id="archiveId" placeholder="e.g. https://archive.org/details/phish2019-08-31.cmc6mk4.flac16">
-      <button class="btn-primary" onclick="fetchFromArchive()">Fetch from Archive.org</button>
-    </div>
-
+    <h2>Show Info</h2><p class="desc">Fetch a setlist from phish.in or archive.org, or enter songs manually.</p>
+    <div class="row"><div><label>Band Name</label><input type="text" id="bandFull" placeholder="e.g. Phish, Goose, moe."></div><div><label>Abbreviation</label><input type="text" id="band" placeholder="e.g. ph, goo, moe" value="ph"></div><div><label>Date (YYYY-MM-DD)</label><input type="text" id="showDate" placeholder="2025-07-15"></div></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px"><button class="btn-primary" onclick="fetchSetlist()">Fetch from phish.in</button><button class="btn-secondary" onclick="showManualEntry()">Manual Entry</button></div>
+    <div style="border-top:1.5px solid var(--surface2);padding-top:16px;margin-bottom:16px"><label>Archive.org URL or Identifier</label><p style="font-size:0.78rem;color:var(--text-dim);margin:-12px 0 8px">Band, date, and setlist auto-populate</p><input type="text" id="archiveId" placeholder="e.g. https://archive.org/details/phish2019-08-31.cmc6mk4.flac16"><button class="btn-primary" onclick="fetchFromArchive()">Fetch from Archive.org</button></div>
     <div id="fetchStatus"></div>
-
-    <!-- Manual Entry -->
-    <div id="manualEntry" style="display:none;margin-top:16px;">
-      <label>Venue (optional)</label>
-      <input type="text" id="manualVenue" placeholder="Madison Square Garden, New York, NY">
-      <div id="manualSongs"></div>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="btn-secondary btn-small" onclick="addManualSong()">+ Add Song</button>
-        <button class="btn-secondary btn-small" onclick="addSetBreak()">+ Set Break</button>
-      </div>
-    </div>
-
-    <!-- Fetched Setlist -->
+    <div id="manualEntry" style="display:none;margin-top:16px"><label>Venue</label><input type="text" id="manualVenue" placeholder="Madison Square Garden, New York, NY"><div id="manualSongs"></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn-secondary btn-small" onclick="addManualSong()">+ Add Song</button><button class="btn-secondary btn-small" onclick="addSetBreak()">+ Set Break</button></div></div>
     <div id="setlistDisplay"></div>
-
-    <div class="nav-buttons">
-      <div></div>
-      <button class="btn-primary" onclick="goToStep(2)" id="toStep2" disabled>Next: Recording Details →</button>
-    </div>
+    <div class="nav-buttons"><div></div><button class="btn-primary" onclick="goToStep(2)" id="toStep2" disabled>Next: Recording Details →</button></div>
   </div>
-
-  <!-- STEP 2: Recording Details -->
   <div class="panel" id="step2">
-    <h2>Recording Details</h2>
-    <p class="desc">Your gear chain builds the marker names. The recording info generates the text file that goes with your upload.</p>
-
-    <!-- Gear Chain Section -->
-    <div style="margin-bottom:24px;">
-      <h3 style="font-family:var(--heading);font-size:0.95rem;font-weight:700;margin-bottom:4px;">Signal Chain</h3>
-      <p class="desc" style="margin-bottom:12px;">Add your gear in signal chain order. Drag rows to reorder. Both fields are editable.</p>
-
-      <div id="gearRows"></div>
-      <button class="btn-secondary btn-small" onclick="addGearRow()" style="margin-bottom:12px;">+ Add Gear</button>
-
-      <div class="marker-preview" id="markerPreview">
-        <span>Preview:</span>
-        Loading...
-      </div>
-      <input type="hidden" id="setFormat" value="s0">
-      <input type="hidden" id="trackNumbering" value="per_set">
-    </div>
-
-    <!-- Recording Info Section -->
-    <div style="border-top:1.5px solid var(--surface2);padding-top:20px;margin-bottom:20px;">
-      <h3 style="font-family:var(--heading);font-size:0.95rem;font-weight:700;margin-bottom:4px;">Recording Info</h3>
-      <p class="desc" style="margin-bottom:12px;">This info goes into the text file included with your recording.</p>
-
-      <label>Source</label>
-      <input type="text" id="recSource" placeholder="e.g. DPA 4023 > Grace Design m101 > Sound Devices MixPre-3">
-
-      <label>Mic Location</label>
-      <input type="text" id="recLocation" placeholder="e.g. FOB, DFC, behind SBD, tapers section">
-
-      <label>Lineage</label>
-      <input type="text" id="recLineage" placeholder="e.g. SD card > Adobe Audition > FLAC">
-
-      <label>Recorded By</label>
-      <input type="text" id="recTaper" placeholder="Your name or taper handle">
-
-      <label>Processed and Edited By</label>
-      <input type="text" id="recEditor" placeholder="Name of person who edited/mastered the recording">
-
-      <label>Notes (optional)</label>
-      <textarea id="recNotes" style="width:100%;height:80px;background:#fff;border:1.5px solid var(--border);border-radius:7px;font-family:var(--sans);font-size:0.88rem;padding:10px 14px;color:var(--text);resize:vertical;margin-bottom:16px;" placeholder="Any notes about the recording — patches, issues, etc."></textarea>
-    </div>
-
-    <div class="nav-buttons">
-      <button class="btn-secondary" onclick="goToStep(1)">← Back</button>
-      <button class="btn-primary" onclick="goToStep(3)">Next: Anchor Points →</button>
-    </div>
+    <h2>Recording Details</h2><p class="desc">Your gear chain builds the marker names.</p>
+    <div style="margin-bottom:24px"><h3 style="font-family:var(--heading);font-size:0.95rem;font-weight:700;margin-bottom:4px">Signal Chain</h3><p class="desc" style="margin-bottom:12px">Add your gear in signal chain order.</p><div id="gearRows"></div><button class="btn-secondary btn-small" onclick="addGearRow()" style="margin-bottom:12px">+ Add Gear</button><div class="marker-preview" id="markerPreview"><span>Preview:</span>Loading...</div><input type="hidden" id="setFormat" value="s0"><input type="hidden" id="trackNumbering" value="per_set"></div>
+    <div style="border-top:1.5px solid var(--surface2);padding-top:20px;margin-bottom:20px"><h3 style="font-family:var(--heading);font-size:0.95rem;font-weight:700;margin-bottom:4px">Recording Info</h3><p class="desc" style="margin-bottom:12px">This info goes into the text file included with your recording.</p><label>Source</label><input type="text" id="recSource" placeholder="e.g. DPA 4023 > Grace Design m101 > Sound Devices MixPre-3"><label>Mic Location</label><input type="text" id="recLocation" placeholder="e.g. FOB, DFC, tapers section"><label>Lineage</label><input type="text" id="recLineage" placeholder="e.g. SD card > Adobe Audition > FLAC"><label>Recorded By</label><input type="text" id="recTaper" placeholder="Your name"><label>Processed and Edited By</label><input type="text" id="recEditor" placeholder="Name of editor"><label>Notes</label><textarea id="recNotes" style="width:100%;height:80px;background:#fff;border:1.5px solid var(--border);border-radius:7px;font-family:var(--sans);font-size:0.88rem;padding:10px 14px;color:var(--text);resize:vertical;margin-bottom:16px" placeholder="Any notes about the recording"></textarea></div>
+    <div class="nav-buttons"><button class="btn-secondary" onclick="goToStep(1)">← Back</button><button class="btn-primary" onclick="goToStep(3)">Next: Anchor Points →</button></div>
   </div>
-
-  <!-- STEP 3: Anchor Points -->
   <div class="panel" id="step3">
-    <h2>Anchor Points</h2>
-    <p class="desc">Tell us where the music sits in your recording. Or skip for markers starting at 0:00.</p>
-
-    <div class="anchor-info">
-      Your recording probably started before the band. These anchor points let us calculate exactly where each song begins in your file. Open your recording in your DAW, find these three moments, and enter the timecodes below.
-    </div>
-
-    <label>Where does the last song of Set 1 END?</label>
-    <input type="text" id="anchor1" placeholder="1:20:43.413 (or leave blank to start at 0:00)">
-
-    <label>Where does Set 2 START?</label>
-    <input type="text" id="anchor2" placeholder="1:24:14.365">
-
-    <label>Where does the very last song END?</label>
-    <input type="text" id="anchor3" placeholder="3:09:02.860">
-
-    <div style="margin-top:8px;">
-      <button class="btn-secondary btn-small" onclick="clearAnchors()">Skip Anchors (start at 0:00)</button>
-    </div>
-
-    <div class="nav-buttons">
-      <button class="btn-secondary" onclick="goToStep(2)">← Back</button>
-      <button class="btn-primary" onclick="calculateAndGoToExport()">Calculate Markers →</button>
-    </div>
+    <h2>Anchor Points</h2><p class="desc">Tell us where the music sits in your recording. Or skip for markers starting at 0:00.</p>
+    <div class="anchor-info">Your recording probably started before the band. These anchor points let us calculate exactly where each song begins in your file. Open your recording in your DAW, find these three moments, and enter the timecodes below.</div>
+    <label>Where does the last song of Set 1 END?</label><input type="text" id="anchor1" placeholder="1:20:43.413 (or leave blank to start at 0:00)">
+    <label>Where does Set 2 START?</label><input type="text" id="anchor2" placeholder="1:24:14.365">
+    <label>Where does the very last song END?</label><input type="text" id="anchor3" placeholder="3:09:02.860">
+    <div style="margin-top:8px"><button class="btn-secondary btn-small" onclick="clearAnchors()">Skip Anchors (start at 0:00)</button></div>
+    <div class="nav-buttons"><button class="btn-secondary" onclick="goToStep(2)">← Back</button><button class="btn-primary" onclick="calculateAndGoToExport()">Calculate Markers →</button></div>
   </div>
-
-  <!-- STEP 4: Export -->
   <div class="panel" id="step4">
-    <h2>Export</h2>
-    <p class="desc">Preview your markers, then download.</p>
-
-    <!-- Marker Table First -->
-    <div id="markerTableContainer" style="margin-bottom:24px;"></div>
-
-    <!-- Export Controls -->
-    <div style="background:var(--accent-light);border:1.5px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">
-      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
-        <div style="flex:1;min-width:180px;">
-          <label>Marker Format</label>
-          <select id="exportFormat" onchange="updateImportNote()" style="margin-bottom:0;">
-            <option value="audition">Adobe Audition (.csv)</option>
-            <option value="reaper">Reaper (.csv)</option>
-            <option value="audacity">Audacity (.txt)</option>
-            <option value="protools">Pro Tools (text)</option>
-            <option value="logic">Logic Pro (.txt)</option>
-            <option value="generic">Generic CSV (.csv)</option>
-          </select>
-        </div>
-        <button class="btn-primary" onclick="downloadMarkers()" style="padding:12px 32px;font-size:0.95rem;">Download Markers</button>
-        <button class="btn-secondary" onclick="downloadTextFile()">Download Text File</button>
-      </div>
-      <p class="import-note" id="importNote" style="margin-top:10px;margin-bottom:0;"></p>
-    </div>
-
-    <div class="nav-buttons">
-      <button class="btn-secondary" onclick="goToStep(3)">← Back</button>
-      <div></div>
-    </div>
+    <h2>Export</h2><p class="desc">Preview your markers, then download.</p>
+    <div id="markerTableContainer" style="margin-bottom:24px"></div>
+    <div style="background:var(--accent-light);border:1.5px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px"><div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap"><div style="flex:1;min-width:180px"><label>Marker Format</label><select id="exportFormat" onchange="updateImportNote()" style="margin-bottom:0"><option value="audition">Adobe Audition (.csv)</option><option value="reaper">Reaper (.csv)</option><option value="audacity">Audacity (.txt)</option><option value="protools">Pro Tools (text)</option><option value="logic">Logic Pro (.txt)</option><option value="generic">Generic CSV (.csv)</option></select></div><button class="btn-primary" onclick="downloadMarkers()" style="padding:12px 32px;font-size:0.95rem">Download Markers</button><button class="btn-secondary" onclick="downloadTextFile()">Download Text File</button></div><p class="import-note" id="importNote" style="margin-top:10px;margin-bottom:0"></p></div>
+    <div class="nav-buttons"><button class="btn-secondary" onclick="goToStep(3)">← Back</button><div></div></div>
   </div>
-
-  <footer>
-    <a href="https://github.com/PosterNutbag01/concert-marker">GitHub</a> · Data from <a href="https://phish.in">phish.in</a> &amp; <a href="https://archive.org/details/etree">archive.org</a> · Built for tapers
-  </footer>
+  <footer><a href="https://github.com/tweezer2025/concert-marker">GitHub</a> · Data from <a href="https://phish.in">phish.in</a> &amp; <a href="https://archive.org/details/etree">archive.org</a> · Built for tapers</footer>
 </div>
-
 <script>
-// ============================================================
-// STATE
-// ============================================================
-let showData = { band: 'ph', bandFull: '', date: '', venue: '', sets: [] };
-let gearChain = [];
-let calculatedMarkers = [];
-let manualSetCount = 1;
-let manualSongCount = 0;
-
-// ============================================================
-// NAVIGATION
-// ============================================================
-function goToStep(n) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('step' + n).classList.add('active');
-  document.querySelectorAll('.step-btn')[n - 1].classList.add('active');
-  if (n === 2) updateMarkerPreview();
-  if (n === 4) { calculateMarkers(); renderMarkerTable(); updateImportNote(); }
-}
-
-// ============================================================
-// STEP 1: URL-BASED FETCH
-// ============================================================
-function detectSource(url) {
-  if (url.includes('livephish.com')) return 'livephish';
-  if (url.includes('nugs.net')) return 'nugs';
-  if (url.includes('phish.in')) return 'phishin';
-  if (url.includes('relisten.net')) return 'relisten';
-  if (url.includes('archive.org')) return 'archive';
-  return 'unknown';
-}
-
-async function fetchFromUrl() {
-  const url = document.getElementById('showUrl').value.trim();
-  if (!url) { showStatus('fetchStatus', 'Paste a URL first.', 'error'); return; }
-
-  const source = detectSource(url);
-  
-  if (source === 'phishin') {
-    // Extract date from phish.in URL and use API
-    const dateMatch = url.match(/(\d{4}-\d{2}-\d{2})/);
-    if (dateMatch) {
-      document.getElementById('showDate').value = dateMatch[1];
-      document.getElementById('band').value = 'ph';
-      return fetchSetlist();
-    }
-  }
-  
-  if (source === 'relisten') {
-    // Extract date from relisten URL like /phish/2025/07/15
-    const dateMatch = url.match(/(\d{4})\/(\d{2})\/(\d{2})/);
-    if (dateMatch) {
-      document.getElementById('showDate').value = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
-      document.getElementById('band').value = 'ph';
-      return fetchSetlist();
-    }
-  }
-
-  if (source === 'livephish' || source === 'nugs') {
-    showStatus('fetchStatus', `Fetching from ${source === 'livephish' ? 'LivePhish' : 'nugs.net'}...`, 'info');
-    
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const html = await resp.text();
-      parseNugsHtml(html, source);
-    } catch (e) {
-      // CORS likely blocked it — show paste fallback
-      showStatus('fetchStatus', 
-        'Could not fetch directly (browser security restriction). Copy the setlist from the page and paste it below.', 
-        'error'
-      );
-      document.getElementById('pasteContentArea').style.display = 'block';
-    }
-    return;
-  }
-
-  showStatus('fetchStatus', 'URL not recognized. Try LivePhish, nugs.net, phish.in, or relisten.net. Or use manual entry.', 'error');
-}
-
-function parseNugsHtml(html, source) {
-  // Parse the LivePhish / nugs.net HTML for setlist data
-  // Both sites have identical structure: set headings followed by song name + duration pairs
-  
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    
-    // Extract venue and date from page
-    const titleEl = doc.querySelector('h1, .venue-name, title');
-    const pageTitle = doc.querySelector('title')?.textContent || '';
-    
-    // Find all setlist sections — they use h6 headings for set labels
-    const setHeadings = doc.querySelectorAll('.setlist h6, h6');
-    const setlistContainer = doc.querySelector('.setlist') || doc.body;
-    
-    // Strategy: walk through the page text and find set headings + song/duration pairs
-    // The page structure has song names followed by duration numbers
-    const bodyText = setlistContainer.textContent || doc.body.textContent;
-    parseSetlistText(bodyText, source);
-    
-  } catch (e) {
-    showStatus('fetchStatus', `Error parsing page: ${e.message}. Try pasting the setlist text below.`, 'error');
-    document.getElementById('pasteContentArea').style.display = 'block';
-  }
-}
-
-function parseSetlistText(text, source) {
-  // Parse setlist text from LivePhish/nugs.net page or pasted content
-  // Format: Set headings followed by song names with durations in seconds
-  
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-  const sets = [];
-  let currentSet = null;
-  let currentSongs = [];
-  let pendingSongName = null;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
-    // Detect set headings
-    const setMatch = line.match(/^(Set\s*(One|Two|Three|Four|1|2|3|4)|Encore\s*\d*)\s*$/i);
-    if (setMatch) {
-      // Save previous set
-      if (currentSet && currentSongs.length > 0) {
-        sets.push({ label: currentSet, songs: [...currentSongs] });
-        currentSongs = [];
-      }
-      currentSet = line;
-      pendingSongName = null;
-      continue;
-    }
-    
-    // Detect duration (a line that's just a number, typically 50-3000 for seconds)
-    const durMatch = line.match(/^(\d{2,5})$/);
-    if (durMatch && pendingSongName) {
-      const duration = parseInt(durMatch[1]);
-      // Sanity check: duration should be between 30 seconds and 60 minutes
-      if (duration >= 30 && duration <= 3600) {
-        currentSongs.push({ 
-          title: pendingSongName, 
-          duration: duration,  // LivePhish/nugs.net durations are in SECONDS
-          position: currentSongs.length + 1 
-        });
-        pendingSongName = null;
-        continue;
-      }
-    }
-    
-    // If we're inside a set and the line looks like a song name
-    if (currentSet && line.length > 1 && !line.match(/^\d+$/) && 
-        !line.match(/^(Share via|Buy|Stream|Add to|MP3|FLAC|ALAC|About|Log|Cart|Skip|Browse)/i)) {
-      // If we had a pending song with no duration, add it without duration
-      if (pendingSongName) {
-        // Previous song name had no duration — might be a non-song line, skip it
-      }
-      pendingSongName = line;
-    }
-  }
-  
-  // Save last set
-  if (currentSet && currentSongs.length > 0) {
-    sets.push({ label: currentSet, songs: [...currentSongs] });
-  }
-  
-  if (sets.length === 0) {
-    showStatus('fetchStatus', 'Could not find setlist data. Try pasting the setlist text below.', 'error');
-    document.getElementById('pasteContentArea').style.display = 'block';
-    return;
-  }
-  
-  // Normalize set labels
-  showData.sets = sets.map((set, i) => {
-    let label = set.label;
-    if (label.match(/encore/i)) label = 'Encore';
-    else if (label.match(/one|1/i)) label = 'Set 1';
-    else if (label.match(/two|2/i)) label = 'Set 2';
-    else if (label.match(/three|3/i)) label = 'Set 3';
-    else label = `Set ${i + 1}`;
-    
-    return {
-      number: i + 1,
-      label: label,
-      songs: set.songs
-    };
-  });
-  
-  // Try to detect band from URL or page
-  const urlEl = document.getElementById('showUrl').value;
-  if (urlEl.includes('livephish.com')) {
-    showData.band = 'ph';
-  } else {
-    // Try to extract artist from nugs.net URL
-    const artistMatch = urlEl.match(/live-download-of-([^-]+)/);
-    if (artistMatch) {
-      showData.band = artistMatch[1].toLowerCase().substring(0, 3);
-    }
-  }
-  
-  // Try to extract date from URL
-  const dateMatch = urlEl.match(/(\d{2})-(\d{2})-(\d{4})/);
-  if (dateMatch) {
-    showData.date = `${dateMatch[3]}-${dateMatch[1]}-${dateMatch[2]}`;
-  }
-  
-  const totalSongs = sets.reduce((sum, s) => sum + s.songs.length, 0);
-  showData.venue = source === 'livephish' ? 'LivePhish' : 'nugs.net';
-  
-  renderSetlist();
-  showStatus('fetchStatus', `Loaded ${totalSongs} songs across ${sets.length} sets`, 'success');
-  document.getElementById('toStep2').disabled = false;
-}
-
-function parseFromPastedContent() {
-  const text = document.getElementById('pastedContent').value;
-  if (!text.trim()) { showStatus('fetchStatus', 'Paste the setlist content first.', 'error'); return; }
-  
-  const source = detectSource(document.getElementById('showUrl').value || '') || 'manual';
-  parseSetlistText(text, source);
-}
-
-// ============================================================
-// STEP 1: ARCHIVE.ORG ETREE FETCH
-// ============================================================
-async function fetchFromArchive() {
-  let input = document.getElementById('archiveId').value.trim();
-  if (!input) { showStatus('fetchStatus', 'Enter an archive.org identifier or URL.', 'error'); return; }
-
-  // Extract identifier from full URL if pasted
-  // e.g. https://archive.org/details/phish2019-08-31.cmc6mk4.flac16
-  if (input.includes('archive.org')) {
-    const match = input.match(/\/details\/([^\/\?#]+)/);
-    if (match) input = match[1];
-    else { showStatus('fetchStatus', 'Could not find identifier in URL. Try pasting just the identifier.', 'error'); return; }
-  }
-
-  showStatus('fetchStatus', `Fetching from archive.org: ${input}...`, 'info');
-
-  try {
-    const resp = await fetch(`https://archive.org/metadata/${input}`);
-    if (!resp.ok) throw new Error(`Item not found (${resp.status})`);
-    const data = await resp.json();
-
-    if (!data.files || data.files.length === 0) {
-      throw new Error('No files found in this item');
-    }
-
-    // Extract metadata
-    const meta = data.metadata || {};
-    showData.venue = meta.venue || '';
-    showData.date = meta.date || '';
-    
-    // Auto-populate band full name from archive.org creator metadata
-    const creator = meta.creator || meta.artist || '';
-    if (creator && !document.getElementById('bandFull').value.trim()) {
-      // Creator might be an array
-      const bandName = Array.isArray(creator) ? creator[0] : creator;
-      showData.bandFull = bandName;
-      document.getElementById('bandFull').value = bandName;
-    } else {
-      showData.bandFull = document.getElementById('bandFull').value.trim() || creator;
-    }
-
-    // Auto-populate abbreviation from identifier or creator
-    // Common patterns: "phish2019-08-31", "gd1977-05-08", "moe2026-02-10", "goose2025-09-19"
-    const bandFromId = input.match(/^([a-zA-Z]+)\d{4}/);
-    if (!document.getElementById('band').value.trim() || document.getElementById('band').value === 'ph') {
-      let abbrev = '';
-      if (bandFromId) {
-        abbrev = bandFromId[1].toLowerCase();
-      } else if (creator) {
-        const cName = Array.isArray(creator) ? creator[0] : creator;
-        // Common band abbreviations
-        const knownAbbrevs = {
-          'phish': 'ph', 'grateful dead': 'gd', 'goose': 'goo', 'moe.': 'moe', 'moe': 'moe',
-          'widespread panic': 'wsp', 'string cheese incident': 'sci', 'the string cheese incident': 'sci',
-          'umphrey\'s mcgee': 'um', 'billy strings': 'bsm', 'trey anastasio': 'tab',
-          'trey anastasio band': 'tab', 'dead & company': 'dc', 'dead and company': 'dc',
-          'dispatch': 'dis', 'sts9': 'sts9', 'sound tribe sector 9': 'sts9',
-          'the disco biscuits': 'tdb', 'disco biscuits': 'tdb', 'lotus': 'lot',
-          'gov\'t mule': 'gm', 'medeski martin and wood': 'mmw', 'spafford': 'spa',
-          'pigeons playing ping pong': 'pppp', 'dopapod': 'dop', 'aqueous': 'aq',
-          'lettuce': 'let', 'snarky puppy': 'sp', 'khruangbin': 'khr',
-        };
-        const lower = cName.toLowerCase();
-        abbrev = knownAbbrevs[lower] || lower.replace(/[^a-z]/g, '').substring(0, 3);
-      }
-      if (abbrev) {
-        showData.band = abbrev;
-        document.getElementById('band').value = abbrev;
-      }
-    } else {
-      showData.band = document.getElementById('band').value.trim().toLowerCase().replace(/\s+/g, '');
-    }
-
-    // Auto-populate date from identifier or metadata
-    if (!showData.date) {
-      const dateMatch = input.match(/(\d{4})-(\d{2})-(\d{2})/);
-      if (dateMatch) showData.date = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
-    }
-    // Put date in the form field
-    if (showData.date && !document.getElementById('showDate').value.trim()) {
-      document.getElementById('showDate').value = showData.date;
-    }
-
-    // Filter to original audio files (FLAC, SHN, WAV — skip MP3 derivatives, metadata files, etc.)
-    const audioFiles = data.files.filter(f => {
-      const name = f.name.toLowerCase();
-      const isAudio = name.endsWith('.flac') || name.endsWith('.shn') || name.endsWith('.wav');
-      const isOriginal = f.source === 'original';
-      return isAudio && isOriginal;
-    });
-
-    // If no lossless originals found, try MP3s
-    let filesToUse = audioFiles;
-    if (filesToUse.length === 0) {
-      filesToUse = data.files.filter(f => {
-        const name = f.name.toLowerCase();
-        return (name.endsWith('.mp3') || name.endsWith('.ogg')) && f.source !== 'metadata';
-      });
-    }
-
-    if (filesToUse.length === 0) {
-      throw new Error('No audio tracks found in this item');
-    }
-
-    // Sort files by name to get correct track order
-    filesToUse.sort((a, b) => a.name.localeCompare(b.name));
-
-    // Parse track titles and durations
-    // Track titles come from the 'title' field in file metadata, or parsed from filename
-    // Durations come from the 'length' field (in seconds, decimal)
-    const tracks = filesToUse.map(f => {
-      let title = f.title || '';
-      
-      // If no title, parse from filename
-      if (!title) {
-        title = f.name
-          .replace(/\.\w+$/, '')           // remove extension
-          .replace(/^[\w]*\d+[-.]?\s*/, '') // remove leading track numbers/prefixes
-          .replace(/[-_]/g, ' ')            // replace dashes/underscores with spaces
-          .trim();
-      }
-
-      // Clean up common filename patterns
-      // e.g. "d1t01 - Runaway Jim" or "01 Chalk Dust Torture"
-      title = title
-        .replace(/^d\d+t\d+\s*[-.]?\s*/i, '')  // remove d1t01 prefix
-        .replace(/^\d{1,2}\s*[-.]?\s*/, '')      // remove track number prefix
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      const duration = parseFloat(f.length) || 0;
-
-      return { title, duration: Math.round(duration) };
-    });
-
-    // Try to detect set breaks from filenames or titles
-    // Common patterns: "d1t01", "d2t01" for disc/set, or "Set I", "Set II" in titles
-    let currentSet = 1;
-    const sets = [{ number: 1, label: 'Set 1', songs: [] }];
-
-    tracks.forEach((track, i) => {
-      const file = filesToUse[i];
-      const fname = file.name.toLowerCase();
-
-      // Detect set changes from filename patterns like d2t01, disc2
-      const discMatch = fname.match(/d(\d+)t0*1/i) || fname.match(/disc(\d+)/i) || fname.match(/set(\d+)/i);
-      if (discMatch) {
-        const discNum = parseInt(discMatch[1]);
-        if (discNum > currentSet) {
-          currentSet = discNum;
-          const label = currentSet === 3 ? 'Encore' : `Set ${currentSet}`;
-          sets.push({ number: currentSet, label, songs: [] });
-        }
-      }
-
-      // Also detect from title containing "Encore" or "Set II" etc.
-      if (track.title.match(/^encore\b/i) && sets[sets.length - 1].label !== 'Encore') {
-        currentSet++;
-        sets.push({ number: currentSet, label: 'Encore', songs: [] });
-        // Remove "Encore" prefix from title if it's just a label
-        track.title = track.title.replace(/^encore\s*[-:.]?\s*/i, '').trim();
-        if (!track.title) return; // Skip if it was just an "Encore" label track
-      }
-
-      if (track.title && track.duration > 0) {
-        sets[sets.length - 1].songs.push({
-          title: track.title,
-          duration: track.duration,
-          position: sets[sets.length - 1].songs.length + 1
-        });
-      }
-    });
-
-    // Remove empty sets
-    showData.sets = sets.filter(s => s.songs.length > 0);
-
-    if (showData.sets.length === 0) {
-      throw new Error('Could not parse any tracks with titles and durations');
-    }
-
-    const totalSongs = showData.sets.reduce((sum, s) => sum + s.songs.length, 0);
-    const artist = meta.creator || meta.artist || 'Unknown';
-    const displayDate = meta.date || showData.date || '';
-    
-    renderSetlist();
-    showStatus('fetchStatus', `Found: ${artist} — ${displayDate} — ${showData.venue || input} (${totalSongs} tracks)`, 'success');
-    document.getElementById('toStep2').disabled = false;
-
-  } catch (e) {
-    showStatus('fetchStatus', `Archive.org error: ${e.message}. Try a different identifier or use manual entry.`, 'error');
-  }
-}
-
-// ============================================================
-// STEP 1: PHISH.IN API FETCH
-// ============================================================
-async function fetchSetlist() {
-  const date = document.getElementById('showDate').value.trim();
-  const band = document.getElementById('band').value.trim();
-  if (!date) { showStatus('fetchStatus', 'Enter a date.', 'error'); return; }
-
-  showData.band = band.toLowerCase().replace(/\s+/g, '');
-  showData.bandFull = document.getElementById('bandFull').value.trim() || band;
-  showData.date = date;
-
-  showStatus('fetchStatus', 'Fetching from phish.in...', 'info');
-
-  try {
-    const resp = await fetch(`https://phish.in/api/v2/shows/${date}`);
-    if (!resp.ok) throw new Error('Show not found');
-    const data = await resp.json();
-
-    showData.venue = data.venue_name || data.venue?.name || '';
-    const tracks = data.tracks || [];
-
-    // Group by set — skip soundcheck
-    const setMap = {};
-    tracks.forEach(t => {
-      const setLabel = t.set || t.set_name || '1';
-      // Skip soundcheck tracks (phish.in labels them as "S" or "Soundcheck")
-      if (setLabel === 'S' || setLabel.toLowerCase() === 'soundcheck') return;
-      if (!setMap[setLabel]) setMap[setLabel] = [];
-      // phish.in returns duration in milliseconds — always convert to seconds
-      const durSec = Math.round(t.duration / 1000);
-      setMap[setLabel].push({ title: t.title, duration: durSec, position: setMap[setLabel].length + 1 });
-    });
-
-    showData.sets = Object.entries(setMap).map(([label, songs], i) => ({
-      number: i + 1, label: label === 'E' ? 'Encore' : `Set ${label}`, songs
-    }));
-
-    renderSetlist();
-    showStatus('fetchStatus', `Found: ${showData.venue || date}`, 'success');
-    document.getElementById('toStep2').disabled = false;
-    document.getElementById('manualEntry').style.display = 'none';
-  } catch (e) {
-    showStatus('fetchStatus', `Could not fetch show. Try manual entry. (${e.message})`, 'error');
-  }
-}
-
-function renderSetlist() {
-  let html = '';
-  let globalTrack = 0;
-  showData.sets.forEach(set => {
-    html += `<div class="setlist-group"><div class="set-header">${set.label}</div>`;
-    set.songs.forEach(song => {
-      globalTrack++;
-      const mins = Math.floor(song.duration / 60);
-      const secs = Math.floor(song.duration % 60);
-      const dur = `${mins}:${String(secs).padStart(2, '0')}`;
-      html += `<div class="song-row">
-        <span class="track-num">${String(globalTrack).padStart(2, '0')}</span>
-        <span class="song-name">${song.title}</span>
-        <span class="duration">${dur}</span>
-      </div>`;
-    });
-    html += '</div>';
-  });
-  document.getElementById('setlistDisplay').innerHTML = html;
-}
-
-// Manual Entry
-function showManualEntry() {
-  document.getElementById('manualEntry').style.display = 'block';
-  showData.band = document.getElementById('band').value.trim().toLowerCase().replace(/\s+/g, '');
-  showData.date = document.getElementById('showDate').value.trim();
-  if (!document.getElementById('manualSongs').children.length) {
-    manualSetCount = 1;
-    manualSongCount = 0;
-    addManualSong();
-  }
-}
-
-function addManualSong() {
-  manualSongCount++;
-  const div = document.createElement('div');
-  div.className = 'row';
-  div.style.marginBottom = '4px';
-  div.innerHTML = `
-    <input type="text" placeholder="Song name" class="manual-song-name" style="flex:3;margin-bottom:4px;">
-    <input type="text" placeholder="m:ss" class="manual-song-dur" style="flex:1;margin-bottom:4px;">
-    <input type="hidden" class="manual-song-set" value="${manualSetCount}">
-  `;
-  document.getElementById('manualSongs').appendChild(div);
-}
-
-function addSetBreak() {
-  manualSetCount++;
-  const div = document.createElement('div');
-  div.className = 'set-header';
-  div.style.marginTop = '12px';
-  div.textContent = manualSetCount === 3 ? 'Encore' : `Set ${manualSetCount}`;
-  document.getElementById('manualSongs').appendChild(div);
-}
-
-function parseManualSetlist() {
-  const names = document.querySelectorAll('.manual-song-name');
-  const durs = document.querySelectorAll('.manual-song-dur');
-  const sets = document.querySelectorAll('.manual-song-set');
-  const setMap = {};
-
-  names.forEach((el, i) => {
-    const name = el.value.trim();
-    const durStr = durs[i].value.trim();
-    const setNum = sets[i].value;
-    if (!name) return;
-
-    const parts = durStr.split(':');
-    let seconds = 0;
-    if (parts.length === 2) seconds = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-    else if (parts.length === 3) seconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
-
-    if (!setMap[setNum]) setMap[setNum] = [];
-    setMap[setNum].push({ title: name, duration: seconds, position: setMap[setNum].length + 1 });
-  });
-
-  showData.venue = document.getElementById('manualVenue').value.trim();
-  showData.sets = Object.entries(setMap).map(([num, songs], i) => ({
-    number: parseInt(num), label: parseInt(num) === 3 ? 'Encore' : `Set ${num}`, songs
-  }));
-
-  renderSetlist();
-  document.getElementById('toStep2').disabled = false;
-}
-
-// Auto-parse manual on next
-const origGoToStep = goToStep;
-goToStep = function(n) {
-  if (n === 2 && document.getElementById('manualEntry').style.display !== 'none') {
-    parseManualSetlist();
-  }
-  origGoToStep(n);
-};
-
-// ============================================================
-// STEP 2: GEAR CHAIN
-// ============================================================
-function addGearRow(label = '', value = '') {
-  const div = document.createElement('div');
-  div.className = 'gear-row';
-  div.draggable = true;
-  div.innerHTML = `
-    <span class="drag-handle" title="Drag to reorder">⠿</span>
-    <input type="text" class="gear-label" placeholder="e.g. Mic, Preamp..." value="${label}" oninput="updateMarkerPreview()">
-    <input type="text" class="gear-value" placeholder="e.g. dpa4023, v3, 788t" value="${value}" oninput="updateMarkerPreview()">
-    <button class="btn-danger" onclick="this.parentElement.remove();updateMarkerPreview();" title="Remove">×</button>
-  `;
-  
-  // Drag and drop reordering
-  div.addEventListener('dragstart', (e) => {
-    e.dataTransfer.effectAllowed = 'move';
-    div.style.opacity = '0.5';
-    window._draggedGear = div;
-  });
-  div.addEventListener('dragend', () => {
-    div.style.opacity = '1';
-    window._draggedGear = null;
-    document.querySelectorAll('.gear-row').forEach(r => r.style.borderTop = '');
-  });
-  div.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    div.style.borderTop = '2px solid var(--text)';
-  });
-  div.addEventListener('dragleave', () => {
-    div.style.borderTop = '';
-  });
-  div.addEventListener('drop', (e) => {
-    e.preventDefault();
-    div.style.borderTop = '';
-    if (window._draggedGear && window._draggedGear !== div) {
-      const container = document.getElementById('gearRows');
-      container.insertBefore(window._draggedGear, div);
-      updateMarkerPreview();
-    }
-  });
-  
-  document.getElementById('gearRows').appendChild(div);
-  updateMarkerPreview();
-}
-
-function updateMarkerPreview() {
-  const values = [...document.querySelectorAll('.gear-value')].map(el => el.value.trim()).filter(v => v);
-  const band = showData.band || 'ph';
-  const date = (showData.date || '2025-01-01').replace(/-/g, '.');
-  const fmt = document.getElementById('setFormat').value;
-  const setStr = fmt === 'se' ? 'se1' : 's01';
-  const gear = values.length ? values.join('.') + '.' : '';
-  const preview = `${band}${date}${gear}${setStr}t01`;
-  document.getElementById('markerPreview').innerHTML = `<span>Preview:</span>${preview}`;
-}
-
-function savePreset() {
-  const name = prompt('Preset name:');
-  if (!name) return;
-  const values = [...document.querySelectorAll('.gear-row')].map(row => ({
-    label: row.querySelector('.gear-label').value,
-    value: row.querySelector('.gear-value').value
-  }));
-  const presets = JSON.parse(localStorage.getItem('gearPresets') || '{}');
-  presets[name] = values;
-  localStorage.setItem('gearPresets', JSON.stringify(presets));
-  loadPresetList();
-}
-
-function loadPresetList() {
-  const presets = JSON.parse(localStorage.getItem('gearPresets') || '{}');
-  const sel = document.getElementById('presetSelect');
-  sel.innerHTML = '<option value="">Load Preset...</option>';
-  Object.keys(presets).forEach(name => {
-    sel.innerHTML += `<option value="${name}">${name}</option>`;
-  });
-}
-
-function loadPreset() {
-  const name = document.getElementById('presetSelect').value;
-  if (!name) return;
-  const presets = JSON.parse(localStorage.getItem('gearPresets') || '{}');
-  const preset = presets[name];
-  if (!preset) return;
-  document.getElementById('gearRows').innerHTML = '';
-  preset.forEach(g => addGearRow(g.label, g.value));
-}
-
-// ============================================================
-// STEP 3: ANCHOR POINTS & CALCULATION
-// ============================================================
-function parseTime(str) {
-  if (!str || !str.trim()) return null;
-  str = str.trim();
-  const parts = str.split(':');
-  if (parts.length === 3) {
-    const secParts = parts[2].split('.');
-    return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(secParts[0]) + (secParts[1] ? parseInt(secParts[1]) / Math.pow(10, secParts[1].length) : 0);
-  } else if (parts.length === 2) {
-    const secParts = parts[1].split('.');
-    return parseInt(parts[0]) * 60 + parseInt(secParts[0]) + (secParts[1] ? parseInt(secParts[1]) / Math.pow(10, secParts[1].length) : 0);
-  }
-  return parseFloat(str) || 0;
-}
-
-function clearAnchors() {
-  document.getElementById('anchor1').value = '';
-  document.getElementById('anchor2').value = '';
-  document.getElementById('anchor3').value = '';
-}
-
-function calculateMarkers() {
-  const a1 = parseTime(document.getElementById('anchor1').value);
-  const a2 = parseTime(document.getElementById('anchor2').value);
-  const a3 = parseTime(document.getElementById('anchor3').value);
-  const fmt = document.getElementById('setFormat').value;
-  const numbering = document.getElementById('trackNumbering').value;
-
-  const gearValues = [...document.querySelectorAll('.gear-value')].map(el => el.value.trim()).filter(v => v);
-  const gear = gearValues.length ? gearValues.join('.') + '.' : '';
-  const band = showData.band || 'ph';
-  const date = (showData.date || '').replace(/-/g, '.');
-
-  calculatedMarkers = [];
-  let globalTrack = 0;
-
-  showData.sets.forEach((set, setIdx) => {
-    const totalDur = set.songs.reduce((sum, s) => sum + s.duration, 0);
-    let setStart = 0;
-
-    // Determine set start based on anchors
-    if (setIdx === 0 && a1 !== null) {
-      setStart = a1 - totalDur;
-    } else if (setIdx === 0) {
-      setStart = 0;
-    } else if (setIdx === 1 && a2 !== null) {
-      setStart = a2;
-    } else if (setIdx >= 1 && a3 !== null) {
-      // For encore or later sets without specific anchor, work backwards from show end
-      const laterSets = showData.sets.slice(setIdx);
-      const laterDur = laterSets.reduce((sum, s) => sum + s.songs.reduce((ss, song) => ss + song.duration, 0), 0);
-      setStart = a3 - laterDur;
-    } else {
-      // No anchors — stack sets with no gap
-      let cumulative = 0;
-      for (let i = 0; i < setIdx; i++) {
-        cumulative += showData.sets[i].songs.reduce((sum, s) => sum + s.duration, 0);
-      }
-      setStart = cumulative;
-    }
-
-    let trackInSet = 0;
-    let cumTime = setStart;
-
-    set.songs.forEach(song => {
-      globalTrack++;
-      trackInSet++;
-      const trackNum = numbering === 'continuous' ? globalTrack : trackInSet;
-      const setNum = set.number;
-      const setStr = fmt === 'se' ? `se${setNum}` : `s${String(setNum).padStart(2, '0')}`;
-      const trackStr = `t${String(trackNum).padStart(2, '0')}`;
-      const markerName = `${band}${date}${gear}${setStr}${trackStr}`;
-
-      calculatedMarkers.push({
-        name: markerName,
-        startSeconds: cumTime,
-        song: song.title,
-        set: setNum,
-        setLabel: set.label,
-        track: trackNum,
-        duration: song.duration
-      });
-
-      cumTime += song.duration;
-    });
-  });
-}
-
-function calculateAndGoToExport() {
-  calculateMarkers();
-  goToStep(4);
-}
-
-// ============================================================
-// STEP 4: RENDER & EXPORT
-// ============================================================
-function formatTime(secs) {
-  if (secs < 0) secs = 0;
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  const sec = Math.floor(s);
-  const ms = Math.round((s - sec) * 1000);
-  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
-  return `${m}:${String(sec).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
-}
-
-function renderMarkerTable() {
-  let html = '<table class="marker-table"><thead><tr><th>#</th><th>Song</th><th>Start</th><th>Set</th><th>Marker Name</th></tr></thead><tbody>';
-  let lastSet = 0;
-  calculatedMarkers.forEach((m, i) => {
-    if (m.set !== lastSet && lastSet !== 0) {
-      html += `<tr class="set-break"><td colspan="5">${m.setLabel}</td></tr>`;
-    }
-    lastSet = m.set;
-    html += `<tr>
-      <td>${String(m.track).padStart(2, '0')}</td>
-      <td style="font-family:var(--sans);color:var(--text);">${m.song}</td>
-      <td>${formatTime(m.startSeconds)}</td>
-      <td>${m.setLabel}</td>
-      <td style="font-size:0.7rem;color:var(--text-dim);">${m.name}</td>
-    </tr>`;
-  });
-  html += '</tbody></table>';
-  document.getElementById('markerTableContainer').innerHTML = html;
-}
-
-function updateImportNote() {
-  const notes = {
-    audition: 'Import: Markers panel → hamburger menu → Import → select .csv file',
-    reaper: 'Import: View → Region/Marker Manager → Options → Import regions/markers',
-    audacity: 'Import: File → Import → Labels → select .txt file',
-    protools: 'Import: Use EdiMarker tool to convert text to Pro Tools session markers',
-    logic: 'Import: File → Import → Marker file',
-    generic: 'Open in any spreadsheet or text editor. Universal reference format.'
-  };
-  const fmt = document.getElementById('exportFormat').value;
-  document.getElementById('importNote').textContent = notes[fmt] || '';
-}
-
-// ============================================================
-// EXPORT GENERATORS
-// ============================================================
-function generateAudition() {
-  let lines = ['Name\tStart\tDuration\tTime Format\tType\tDescription'];
-  calculatedMarkers.forEach(m => {
-    lines.push(`${m.name}\t${formatTime(m.startSeconds)}\t0:00.000\tdecimal\tCue\t${m.song}`);
-  });
-  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers.csv`, mime: 'text/csv' };
-}
-
-function generateReaper() {
-  let lines = ['#\tName\tStart\tEnd\tLength\tColor'];
-  calculatedMarkers.forEach((m, i) => {
-    const startSec = m.startSeconds.toFixed(3);
-    lines.push(`M${i+1}\t${m.song}\t${startSec}\t${startSec}\t0.000\t`);
-  });
-  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers_reaper.csv`, mime: 'text/csv' };
-}
-
-function generateAudacity() {
-  let lines = [];
-  calculatedMarkers.forEach(m => {
-    const t = m.startSeconds.toFixed(6);
-    lines.push(`${t}\t${t}\t${m.song}`);
-  });
-  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_labels.txt`, mime: 'text/plain' };
-}
-
-function generateProTools() {
-  let lines = ['#\tTime\tName'];
-  calculatedMarkers.forEach((m, i) => {
-    const h = Math.floor(m.startSeconds / 3600);
-    const min = Math.floor((m.startSeconds % 3600) / 60);
-    const sec = Math.floor(m.startSeconds % 60);
-    const frames = Math.floor((m.startSeconds % 1) * 30);
-    const tc = `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}:${String(frames).padStart(2,'0')}`;
-    lines.push(`${i+1}\t${tc}\t${m.song}`);
-  });
-  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers_protools.txt`, mime: 'text/plain' };
-}
-
-function generateLogic() {
-  let lines = [];
-  calculatedMarkers.forEach((m, i) => {
-    lines.push(`${formatTime(m.startSeconds)}\t${m.song}`);
-  });
-  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers_logic.txt`, mime: 'text/plain' };
-}
-
-function generateGeneric() {
-  let lines = ['Track,Song,Start (mm:ss),Start (seconds)'];
-  calculatedMarkers.forEach(m => {
-    const mins = Math.floor(m.startSeconds / 60);
-    const secs = Math.floor(m.startSeconds % 60);
-    lines.push(`${m.track},${m.song},${mins}:${String(secs).padStart(2,'0')},${m.startSeconds.toFixed(3)}`);
-  });
-  return { content: lines.join('\n'), filename: `${showData.band}${showData.date.replace(/-/g,'.')}_markers.csv`, mime: 'text/csv' };
-}
-
-function downloadMarkers() {
-  const fmt = document.getElementById('exportFormat').value;
-  const generators = { audition: generateAudition, reaper: generateReaper, audacity: generateAudacity, protools: generateProTools, logic: generateLogic, generic: generateGeneric };
-  const { content, filename, mime } = generators[fmt]();
-
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  localStorage.setItem('lastExportFormat', fmt);
-}
-
-function downloadTextFile() {
-  const band = document.getElementById('band').value.trim() || showData.band || '';
-  const bandFull = document.getElementById('bandFull').value.trim() || showData.bandFull || band;
-  const date = showData.date || document.getElementById('showDate').value.trim() || '';
-  const venue = showData.venue || '';
-  const source = document.getElementById('recSource').value.trim() || '';
-  const location = document.getElementById('recLocation').value.trim() || '';
-  const lineage = document.getElementById('recLineage').value.trim() || '';
-  const taper = document.getElementById('recTaper').value.trim() || '';
-  const editor = document.getElementById('recEditor').value.trim() || '';
-  const notes = document.getElementById('recNotes').value.trim() || '';
-
-  // Build the gear chain string from values
-  const gearValues = [...document.querySelectorAll('.gear-value')].map(el => el.value.trim()).filter(v => v);
-  const gearLabels = [...document.querySelectorAll('.gear-label')].map(el => el.value.trim());
-  
-  // Build source from gear chain if not manually entered
-  let sourceStr = source;
-  if (!sourceStr && gearValues.length > 0) {
-    sourceStr = gearValues.map((v, i) => {
-      const label = gearLabels[i];
-      return label ? `${label}: ${v}` : v;
-    }).join(' > ');
-  }
-
-  // Build setlist text
-  let setlistText = '';
-  showData.sets.forEach(set => {
-    setlistText += `${set.label}\n\n`;
-    set.songs.forEach((song, i) => {
-      const mins = Math.floor(song.duration / 60);
-      const secs = song.duration % 60;
-      const dur = song.duration > 0 ? ` [${mins}:${String(secs).padStart(2, '0')}]` : '';
-      setlistText += `${song.title}${dur}\n`;
-    });
-    setlistText += '\n';
-  });
-
-  // Assemble the text file — use full band name, not abbreviation
-  let text = '';
-  text += `${bandFull}\n`;
-  text += `${venue}\n`;
-  text += `${date}\n`;
-  text += '\n';
-  if (sourceStr) text += `Source: ${sourceStr}\n`;
-  if (location) text += `Location: ${location}\n`;
-  if (lineage) text += `Lineage: ${lineage}\n`;
-  text += '\n';
-  if (taper) text += `Recorded By: ${taper}\n`;
-  if (editor) text += `Processed and Edited By: ${editor}\n`;
-  text += '\n';
-  text += setlistText;
-  if (notes) {
-    text += `Notes:\n${notes}\n`;
-  }
-
-  // Generate filename — abbreviation.date.signalchain.txt
-  const dateForFile = date.replace(/-/g, '.');
-  const gearStr = gearValues.length ? '.' + gearValues.join('.') : '';
-  const filename = `${band}${dateForFile}${gearStr}.txt`;
-
-  const blob = new Blob([text], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// ============================================================
-// UTILITIES
-// ============================================================
-function showStatus(elId, msg, type) {
-  document.getElementById(elId).innerHTML = `<div class="status ${type}">${msg}</div>`;
-}
-
-// Init
-window.addEventListener('DOMContentLoaded', () => {
-  addGearRow('Mic', '');
-  addGearRow('Preamp', '');
-  addGearRow('Recorder', '');
-  loadPresetList();
-  const lastFmt = localStorage.getItem('lastExportFormat');
-  if (lastFmt) document.getElementById('exportFormat').value = lastFmt;
-  updateMarkerPreview();
-});
+let showData={band:'ph',bandFull:'',date:'',venue:'',sets:[]};let gearChain=[];let calculatedMarkers=[];let manualSetCount=1;let manualSongCount=0;
+function goToStep(n){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.step-btn').forEach(b=>b.classList.remove('active'));document.getElementById('step'+n).classList.add('active');document.querySelectorAll('.step-btn')[n-1].classList.add('active');if(n===2)updateMarkerPreview();if(n===4){calculateMarkers();renderMarkerTable();updateImportNote();}}
+async function fetchSetlist(){const date=document.getElementById('showDate').value.trim();const band=document.getElementById('band').value.trim();if(!date){showStatus('fetchStatus','Enter a date.','error');return;}showData.band=band.toLowerCase().replace(/\s+/g,'');showData.bandFull=document.getElementById('bandFull').value.trim()||band;showData.date=date;showStatus('fetchStatus','Fetching from phish.in...','info');try{const resp=await fetch('https://phish.in/api/v2/shows/'+date);if(!resp.ok)throw new Error('Show not found');const data=await resp.json();showData.venue=data.venue_name||data.venue?.name||'';const tracks=data.tracks||[];const setMap={};tracks.forEach(t=>{const sl=t.set||t.set_name||'1';if(!setMap[sl])setMap[sl]=[];setMap[sl].push({title:t.title,duration:Math.round(t.duration/1000),position:setMap[sl].length+1});});showData.sets=Object.entries(setMap).map(([label,songs],i)=>({number:i+1,label:label==='E'?'Encore':'Set '+label,songs}));renderSetlist();showStatus('fetchStatus','Found: '+(showData.venue||date),'success');document.getElementById('toStep2').disabled=false;}catch(e){showStatus('fetchStatus','Could not fetch. Try manual entry. ('+e.message+')','error');}}
+async function fetchFromArchive(){let input=document.getElementById('archiveId').value.trim();if(!input){showStatus('fetchStatus','Enter an archive.org identifier or URL.','error');return;}if(input.includes('archive.org')){const m=input.match(/\/details\/([^\/\?#]+)/);if(m)input=m[1];else{showStatus('fetchStatus','Could not find identifier in URL.','error');return;}}showStatus('fetchStatus','Fetching from archive.org: '+input+'...','info');try{const resp=await fetch('https://archive.org/metadata/'+input);if(!resp.ok)throw new Error('Item not found');const data=await resp.json();if(!data.files)throw new Error('No files');const meta=data.metadata||{};showData.venue=meta.venue||'';showData.date=meta.date||'';const creator=meta.creator||meta.artist||'';if(creator&&!document.getElementById('bandFull').value.trim()){const bn=Array.isArray(creator)?creator[0]:creator;showData.bandFull=bn;document.getElementById('bandFull').value=bn;}const bid=input.match(/^([a-zA-Z]+)\d{4}/);if(!document.getElementById('band').value.trim()||document.getElementById('band').value==='ph'){let ab='';if(bid)ab=bid[1].toLowerCase();else if(creator){const cn=(Array.isArray(creator)?creator[0]:creator).toLowerCase();const ka={'phish':'ph','grateful dead':'gd','goose':'goo','moe.':'moe','moe':'moe','widespread panic':'wsp','the disco biscuits':'tdb','umphrey\'s mcgee':'um','billy strings':'bsm','trey anastasio band':'tab','dead & company':'dc','spafford':'spa','lotus':'lot'};ab=ka[cn]||cn.replace(/[^a-z]/g,'').substring(0,3);}if(ab){showData.band=ab;document.getElementById('band').value=ab;}}else{showData.band=document.getElementById('band').value.trim().toLowerCase().replace(/\s+/g,'');}if(!showData.date){const dm=input.match(/(\d{4})-(\d{2})-(\d{2})/);if(dm)showData.date=dm[1]+'-'+dm[2]+'-'+dm[3];}if(showData.date&&!document.getElementById('showDate').value.trim())document.getElementById('showDate').value=showData.date;
+let af=data.files.filter(f=>{const n=f.name.toLowerCase();return(n.endsWith('.flac')||n.endsWith('.shn')||n.endsWith('.wav'))&&f.source==='original';});if(!af.length)af=data.files.filter(f=>{const n=f.name.toLowerCase();return(n.endsWith('.mp3')||n.endsWith('.ogg'))&&f.source!=='metadata';});if(!af.length)throw new Error('No audio tracks found');af.sort((a,b)=>a.name.localeCompare(b.name));
+const tracks=af.map(f=>{let title=f.title||'';if(!title)title=f.name.replace(/\.\w+$/,'').replace(/^[\w]*\d+[-.]?\s*/,'').replace(/[-_]/g,' ').trim();title=title.replace(/^d\d+t\d+\s*[-.]?\s*/i,'').replace(/^\d{1,2}\s*[-.]?\s*/,'').replace(/\s+/g,' ').trim();return{title,duration:Math.round(parseFloat(f.length)||0)};});
+// FIXED: Set break detection
+let currentSet=1;const sets=[{number:1,label:'Set 1',songs:[]}];let breakCount=0;
+tracks.forEach((track,i)=>{const fname=af[i].name.toLowerCase();const tl=track.title.toLowerCase().trim();
+const dm=fname.match(/d(\d+)t0*1/i)||fname.match(/disc(\d+)/i)||fname.match(/set(\d+)/i);if(dm){const dn=parseInt(dm[1]);if(dn>currentSet){currentSet=dn;sets.push({number:currentSet,label:currentSet>=3?'Encore':'Set '+currentSet,songs:[]});}}
+const isBreak=/^(crowd|crowd noise|set break|intermission|break|applause|encore break)$/i.test(tl);
+if(isBreak&&track.duration<=180){if(sets[sets.length-1].songs.length>0){breakCount++;currentSet++;sets.push({number:currentSet,label:/encore/i.test(tl)||breakCount>=2?'Encore':'Set '+currentSet,songs:[]});}return;}
+if(tl.startsWith('encore')&&sets[sets.length-1].label!=='Encore'){if(sets[sets.length-1].songs.length>0){currentSet++;sets.push({number:currentSet,label:'Encore',songs:[]});}track.title=track.title.replace(/^encore\s*[-:.]?\s*/i,'').trim();if(!track.title)return;}
+if(track.title&&track.duration>0){sets[sets.length-1].songs.push({title:track.title,duration:track.duration,position:sets[sets.length-1].songs.length+1});}});
+showData.sets=sets.filter(s=>s.songs.length>0);if(!showData.sets.length)throw new Error('No tracks parsed');const ts=showData.sets.reduce((s,st)=>s+st.songs.length,0);renderSetlist();showStatus('fetchStatus','Found: '+(creator||'Unknown')+' — '+showData.date+' — '+(showData.venue||input)+' ('+ts+' tracks)','success');document.getElementById('toStep2').disabled=false;}catch(e){showStatus('fetchStatus','Archive.org error: '+e.message,'error');}}
+function renderSetlist(){let html='';let gt=0;showData.sets.forEach(set=>{html+='<div class="setlist-group"><div class="set-header">'+set.label+'</div>';set.songs.forEach(song=>{gt++;const m=Math.floor(song.duration/60),s=Math.floor(song.duration%60);html+='<div class="song-row"><span class="track-num">'+String(gt).padStart(2,'0')+'</span><span class="song-name">'+song.title+'</span><span class="duration">'+m+':'+String(s).padStart(2,'0')+'</span></div>';});html+='</div>';});document.getElementById('setlistDisplay').innerHTML=html;}
+function showManualEntry(){document.getElementById('manualEntry').style.display='block';showData.band=document.getElementById('band').value.trim().toLowerCase().replace(/\s+/g,'');showData.date=document.getElementById('showDate').value.trim();if(!document.getElementById('manualSongs').children.length){manualSetCount=1;manualSongCount=0;addManualSong();}}
+function addManualSong(){manualSongCount++;const d=document.createElement('div');d.className='row';d.style.marginBottom='4px';d.innerHTML='<input type="text" placeholder="Song name" class="manual-song-name" style="flex:3;margin-bottom:4px"><input type="text" placeholder="m:ss" class="manual-song-dur" style="flex:1;margin-bottom:4px"><input type="hidden" class="manual-song-set" value="'+manualSetCount+'">';document.getElementById('manualSongs').appendChild(d);}
+function addSetBreak(){manualSetCount++;const d=document.createElement('div');d.className='set-header';d.style.marginTop='12px';d.textContent=manualSetCount===3?'Encore':'Set '+manualSetCount;document.getElementById('manualSongs').appendChild(d);}
+function parseManualSetlist(){const names=document.querySelectorAll('.manual-song-name');const durs=document.querySelectorAll('.manual-song-dur');const ss=document.querySelectorAll('.manual-song-set');const sm={};names.forEach((el,i)=>{const n=el.value.trim(),ds=durs[i].value.trim(),sn=ss[i].value;if(!n)return;const p=ds.split(':');let sec=0;if(p.length===2)sec=parseInt(p[0])*60+parseInt(p[1]);else if(p.length===3)sec=parseInt(p[0])*3600+parseInt(p[1])*60+parseInt(p[2]);if(!sm[sn])sm[sn]=[];sm[sn].push({title:n,duration:sec,position:sm[sn].length+1});});showData.venue=document.getElementById('manualVenue').value.trim();showData.sets=Object.entries(sm).map(([num,songs])=>({number:parseInt(num),label:parseInt(num)===3?'Encore':'Set '+num,songs}));renderSetlist();document.getElementById('toStep2').disabled=false;}
+const origGoToStep=goToStep;goToStep=function(n){if(n===2&&document.getElementById('manualEntry').style.display!=='none')parseManualSetlist();origGoToStep(n);};
+function addGearRow(label='',value=''){const d=document.createElement('div');d.className='gear-row';d.draggable=true;d.innerHTML='<span style="color:var(--border);font-size:1.1rem;cursor:grab;user-select:none;padding:0 2px">⠿</span><input type="text" class="gear-label" placeholder="e.g. Mic" value="'+label+'" oninput="updateMarkerPreview()"><input type="text" class="gear-value" placeholder="e.g. dpa4023, v3" value="'+value+'" oninput="updateMarkerPreview()"><button class="btn-danger" onclick="this.parentElement.remove();updateMarkerPreview()">×</button>';d.addEventListener('dragstart',e=>{e.dataTransfer.effectAllowed='move';d.style.opacity='0.5';window._dg=d;});d.addEventListener('dragend',()=>{d.style.opacity='1';window._dg=null;});d.addEventListener('dragover',e=>{e.preventDefault();d.style.borderTop='2px solid var(--text)';});d.addEventListener('dragleave',()=>{d.style.borderTop='';});d.addEventListener('drop',e=>{e.preventDefault();d.style.borderTop='';if(window._dg&&window._dg!==d){document.getElementById('gearRows').insertBefore(window._dg,d);updateMarkerPreview();}});document.getElementById('gearRows').appendChild(d);updateMarkerPreview();}
+function updateMarkerPreview(){const v=[...document.querySelectorAll('.gear-value')].map(e=>e.value.trim()).filter(v=>v);const b=showData.band||'ph';const dt=(showData.date||'2025-01-01').replace(/-/g,'.');const g=v.length?v.join('.')+'.':'';document.getElementById('markerPreview').innerHTML='<span>Preview:</span>'+b+dt+g+'s01t01';}
+function parseTime(str){if(!str||!str.trim())return null;str=str.trim();const p=str.split(':');if(p.length===3){const sp=p[2].split('.');return parseInt(p[0])*3600+parseInt(p[1])*60+parseInt(sp[0])+(sp[1]?parseInt(sp[1])/Math.pow(10,sp[1].length):0);}else if(p.length===2){const sp=p[1].split('.');return parseInt(p[0])*60+parseInt(sp[0])+(sp[1]?parseInt(sp[1])/Math.pow(10,sp[1].length):0);}return parseFloat(str)||0;}
+function clearAnchors(){document.getElementById('anchor1').value='';document.getElementById('anchor2').value='';document.getElementById('anchor3').value='';}
+
+// *** FIXED calculateMarkers ***
+function calculateMarkers(){
+const a1=parseTime(document.getElementById('anchor1').value);
+const a2=parseTime(document.getElementById('anchor2').value);
+const a3=parseTime(document.getElementById('anchor3').value);
+const fmt=document.getElementById('setFormat').value;
+const numbering=document.getElementById('trackNumbering').value;
+const gv=[...document.querySelectorAll('.gear-value')].map(e=>e.value.trim()).filter(v=>v);
+const gear=gv.length?gv.join('.')+'.':'';
+const band=showData.band||'ph';
+const date=(showData.date||'').replace(/-/g,'.');
+calculatedMarkers=[];
+let globalTrack=0;
+const totalSets=showData.sets.length;
+showData.sets.forEach((set,si)=>{
+const songs=set.songs;
+const totalDur=songs.reduce((s,x)=>s+x.duration,0);
+const pos=[];
+const isFirst=si===0,isLast=si===totalSets-1;
+if(totalSets===1){
+// Single set: use a3 or a1 to work backwards, or start at 0
+if(a3!==null){let p=a3;for(let i=songs.length-1;i>=0;i--){p-=songs[i].duration;pos.unshift(Math.max(0,p));}
+}else if(a1!==null){let p=a1;for(let i=songs.length-1;i>=0;i--){p-=songs[i].duration;pos.unshift(Math.max(0,p));}
+}else{let p=0;songs.forEach(s=>{pos.push(p);p+=s.duration;});}
+}else if(isFirst){
+// First set of multi-set: work backwards from a1
+if(a1!==null){let p=a1;for(let i=songs.length-1;i>=0;i--){p-=songs[i].duration;pos.unshift(Math.max(0,p));}
+}else{let p=0;songs.forEach(s=>{pos.push(p);p+=s.duration;});}
+}else if(isLast){
+// Last set: use a2 forward, a3 backward, or blend
+if(a2!==null&&si===1){
+let p=a2;songs.forEach(s=>{pos.push(p);p+=s.duration;});
+if(a3!==null){const bp=[];let bp2=a3;for(let i=songs.length-1;i>=0;i--){bp2-=songs[i].duration;bp.unshift(bp2);}const mid=Math.floor(songs.length/2);for(let i=mid;i<songs.length;i++)pos[i]=bp[i];}
+}else if(a3!==null){let p=a3;for(let i=songs.length-1;i>=0;i--){p-=songs[i].duration;pos.unshift(Math.max(0,p));}
+}else{let c=0;for(let i=0;i<si;i++)c+=showData.sets[i].songs.reduce((s,x)=>s+x.duration,0);if(a1!==null&&si===1)c=a1;let p=c;songs.forEach(s=>{pos.push(p);p+=s.duration;});}
+}else{
+// Middle set
+if(a2!==null&&si===1){let p=a2;songs.forEach(s=>{pos.push(p);p+=s.duration;});
+}else{let c=0;for(let i=0;i<si;i++)c+=showData.sets[i].songs.reduce((s,x)=>s+x.duration,0);if(a1!==null&&si===1)c=a1;let p=c;songs.forEach(s=>{pos.push(p);p+=s.duration;});}}
+let tis=0;
+songs.forEach((song,i)=>{globalTrack++;tis++;
+const tn=numbering==='continuous'?globalTrack:tis;
+const sn=set.number;
+const ss=fmt==='se'?'se'+sn:'s'+String(sn).padStart(2,'0');
+const ts='t'+String(tn).padStart(2,'0');
+calculatedMarkers.push({name:band+date+gear+ss+ts,startSeconds:pos[i],song:song.title,set:sn,setLabel:set.label,track:tn,duration:song.duration});});});}
+
+function calculateAndGoToExport(){calculateMarkers();goToStep(4);}
+function formatTime(secs){if(secs<0)secs=0;const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60,sec=Math.floor(s),ms=Math.round((s-sec)*1000);if(h>0)return h+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0')+'.'+String(ms).padStart(3,'0');return m+':'+String(sec).padStart(2,'0')+'.'+String(ms).padStart(3,'0');}
+function renderMarkerTable(){let html='<table class="marker-table"><thead><tr><th>#</th><th>Song</th><th>Start</th><th>Set</th><th>Marker Name</th></tr></thead><tbody>';let ls=0;calculatedMarkers.forEach(m=>{if(m.set!==ls&&ls!==0)html+='<tr class="set-break"><td colspan="5">'+m.setLabel+'</td></tr>';ls=m.set;html+='<tr><td>'+String(m.track).padStart(2,'0')+'</td><td style="font-family:var(--sans);color:var(--text)">'+m.song+'</td><td>'+formatTime(m.startSeconds)+'</td><td>'+m.setLabel+'</td><td style="font-size:0.7rem;color:var(--text-dim)">'+m.name+'</td></tr>';});html+='</tbody></table>';document.getElementById('markerTableContainer').innerHTML=html;}
+function updateImportNote(){const n={audition:'Import: Markers panel → hamburger menu → Import → select .csv file',reaper:'Import: View → Region/Marker Manager → Options → Import',audacity:'Import: File → Import → Labels',protools:'Import: Use EdiMarker tool',logic:'Import: File → Import → Marker file',generic:'Open in any spreadsheet or text editor.'};document.getElementById('importNote').textContent=n[document.getElementById('exportFormat').value]||'';}
+function generateAudition(){let l=['Name\tStart\tDuration\tTime Format\tType\tDescription'];calculatedMarkers.forEach(m=>l.push(m.name+'\t'+formatTime(m.startSeconds)+'\t0:00.000\tdecimal\tCue\t'+m.song));return{content:l.join('\n'),filename:showData.band+showData.date.replace(/-/g,'.')+'_markers.csv',mime:'text/csv'};}
+function generateReaper(){let l=['#\tName\tStart\tEnd\tLength\tColor'];calculatedMarkers.forEach((m,i)=>l.push('M'+(i+1)+'\t'+m.song+'\t'+m.startSeconds.toFixed(3)+'\t'+m.startSeconds.toFixed(3)+'\t0.000\t'));return{content:l.join('\n'),filename:showData.band+showData.date.replace(/-/g,'.')+'_markers_reaper.csv',mime:'text/csv'};}
+function generateAudacity(){let l=[];calculatedMarkers.forEach(m=>{const t=m.startSeconds.toFixed(6);l.push(t+'\t'+t+'\t'+m.song);});return{content:l.join('\n'),filename:showData.band+showData.date.replace(/-/g,'.')+'_labels.txt',mime:'text/plain'};}
+function generateProTools(){let l=['#\tTime\tName'];calculatedMarkers.forEach((m,i)=>{const h=Math.floor(m.startSeconds/3600),mn=Math.floor((m.startSeconds%3600)/60),sc=Math.floor(m.startSeconds%60),fr=Math.floor((m.startSeconds%1)*30);l.push((i+1)+'\t'+String(h).padStart(2,'0')+':'+String(mn).padStart(2,'0')+':'+String(sc).padStart(2,'0')+':'+String(fr).padStart(2,'0')+'\t'+m.song);});return{content:l.join('\n'),filename:showData.band+showData.date.replace(/-/g,'.')+'_markers_protools.txt',mime:'text/plain'};}
+function generateLogic(){let l=[];calculatedMarkers.forEach(m=>l.push(formatTime(m.startSeconds)+'\t'+m.song));return{content:l.join('\n'),filename:showData.band+showData.date.replace(/-/g,'.')+'_markers_logic.txt',mime:'text/plain'};}
+function generateGeneric(){let l=['Track,Song,Start (mm:ss),Start (seconds)'];calculatedMarkers.forEach(m=>{const mn=Math.floor(m.startSeconds/60),sc=Math.floor(m.startSeconds%60);l.push(m.track+','+m.song+','+mn+':'+String(sc).padStart(2,'0')+','+m.startSeconds.toFixed(3));});return{content:l.join('\n'),filename:showData.band+showData.date.replace(/-/g,'.')+'_markers.csv',mime:'text/csv'};}
+function downloadMarkers(){const fmt=document.getElementById('exportFormat').value;const g={audition:generateAudition,reaper:generateReaper,audacity:generateAudacity,protools:generateProTools,logic:generateLogic,generic:generateGeneric};const{content,filename,mime}=g[fmt]();const blob=new Blob([content],{type:mime});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);localStorage.setItem('lastExportFormat',fmt);}
+function downloadTextFile(){const band=document.getElementById('band').value.trim()||showData.band||'';const bandFull=document.getElementById('bandFull').value.trim()||showData.bandFull||band;const date=showData.date||document.getElementById('showDate').value.trim()||'';const venue=showData.venue||'';const source=document.getElementById('recSource').value.trim();const location=document.getElementById('recLocation').value.trim();const lineage=document.getElementById('recLineage').value.trim();const taper=document.getElementById('recTaper').value.trim();const editor=document.getElementById('recEditor').value.trim();const notes=document.getElementById('recNotes').value.trim();const gv=[...document.querySelectorAll('.gear-value')].map(e=>e.value.trim()).filter(v=>v);const gl=[...document.querySelectorAll('.gear-label')].map(e=>e.value.trim());let src=source;if(!src&&gv.length)src=gv.map((v,i)=>gl[i]?gl[i]+': '+v:v).join(' > ');let sl='';showData.sets.forEach(set=>{sl+=set.label+'\n\n';set.songs.forEach(song=>{const m=Math.floor(song.duration/60),s=song.duration%60;sl+=song.title+(song.duration>0?' ['+m+':'+String(s).padStart(2,'0')+']':'')+'\n';});sl+='\n';});let text=bandFull+'\n'+venue+'\n'+date+'\n\n';if(src)text+='Source: '+src+'\n';if(location)text+='Location: '+location+'\n';if(lineage)text+='Lineage: '+lineage+'\n';text+='\n';if(taper)text+='Recorded By: '+taper+'\n';if(editor)text+='Processed and Edited By: '+editor+'\n';text+='\n'+sl;if(notes)text+='Notes:\n'+notes+'\n';const df=date.replace(/-/g,'.');const gs=gv.length?'.'+gv.join('.'):'';const fn=band+df+gs+'.txt';const blob=new Blob([text],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);}
+function showStatus(id,msg,type){document.getElementById(id).innerHTML='<div class="status '+type+'">'+msg+'</div>';}
+window.addEventListener('DOMContentLoaded',()=>{addGearRow('Mic','');addGearRow('Preamp','');addGearRow('Recorder','');updateMarkerPreview();const lf=localStorage.getItem('lastExportFormat');if(lf)document.getElementById('exportFormat').value=lf;});
 </script>
 </body>
 </html>
