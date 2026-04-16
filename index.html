@@ -687,6 +687,77 @@ async function fetchFromArchiveByDate() {
 // ============================================================
 // STEP 1: ARCHIVE.ORG ETREE FETCH
 // ============================================================
+// Parse an archive.org item's description field for a setlist with "Set 1 / Set 2 / Encore"
+// headings. Returns [{ label, songs: [titles] }, ...] or null if no sections found.
+// Handles HTML tags, bracketed annotations, "> " segues, and common list styles.
+function parseSetlistFromDescription(description) {
+  if (!description) return null;
+  const raw = Array.isArray(description) ? description.join('\n') : String(description);
+
+  // Strip HTML, normalize entities + whitespace
+  const text = raw
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/?(p|div|li|ul|ol|h[1-6])[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(l => l);
+  if (lines.length === 0) return null;
+
+  // Match "Set 1:", "Set I", "Set One", "Encore:", "E:" as section headings.
+  // Allow trailing inline content after the colon for cases like "Set 1: Song, Song, Song".
+  const headingRe = /^(set\s+(?:\d+|[ivx]+|one|two|three|four|five)|encore|e)\b\s*[:.\-–—]?\s*(.*)$/i;
+
+  const romanToNum = { i: 1, ii: 2, iii: 3, iv: 4, v: 5 };
+  const wordToNum = { one: 1, two: 2, three: 3, four: 4, five: 5 };
+
+  function normalizeLabel(rawLabel) {
+    const l = rawLabel.trim().toLowerCase();
+    if (/^e(ncore)?$/.test(l)) return 'Encore';
+    const digit = l.match(/\d+/);
+    if (digit) return `Set ${parseInt(digit[0], 10)}`;
+    for (const [w, n] of Object.entries(wordToNum)) if (l.includes(w)) return `Set ${n}`;
+    const roman = l.match(/\b([ivx]+)\b/);
+    if (roman && romanToNum[roman[1]]) return `Set ${romanToNum[roman[1]]}`;
+    return 'Set 1';
+  }
+
+  function extractSongs(segment) {
+    // Split on commas OR segue markers (" > ", " -> ") but NOT inside parens.
+    const cleaned = segment
+      .replace(/\s*\[[^\]]*\]\s*/g, ' ')   // strip [annotations]
+      .replace(/\*+/g, '')                 // strip trailing asterisks/footnote markers
+      .trim();
+    if (!cleaned) return [];
+    return cleaned
+      .split(/\s*(?:,|\s>\s|\s->\s|\s→\s)\s*/)
+      .map(s => s.replace(/^\d+\.\s*/, '').trim())  // drop "1. " list numbering
+      .filter(s => s && !/^set\s|^encore/i.test(s));
+  }
+
+  const sections = [];
+  let current = null;
+
+  for (const line of lines) {
+    const m = line.match(headingRe);
+    if (m) {
+      current = { label: normalizeLabel(m[1]), songs: [] };
+      sections.push(current);
+      if (m[2]) current.songs.push(...extractSongs(m[2]));
+      continue;
+    }
+    if (current) current.songs.push(...extractSongs(line));
+  }
+
+  const usable = sections.filter(s => s.songs.length > 0);
+  return usable.length >= 1 ? usable : null;
+}
+
 async function fetchFromArchive() {
   let input = document.getElementById('archiveId').value.trim();
   if (!input) { showStatus('fetchStatus', 'Enter an archive.org identifier or URL.', 'error'); return; }
@@ -826,43 +897,70 @@ async function fetchFromArchive() {
       return { title, duration: Math.round(duration) };
     });
 
-    // Try to detect set breaks from filenames or titles
-    // Common patterns: "d1t01", "d2t01" for disc/set, or "Set I", "Set II" in titles
-    let currentSet = 1;
-    const sets = [{ number: 1, label: 'Set 1', songs: [] }];
+    // STRATEGY 1 (preferred): parse the archive.org description for "Set 1 / Set 2 / Encore".
+    // Many uploads name files generically (t01, t02, ...) so filenames tell us nothing about
+    // set breaks, but the description usually has a human-typed setlist. If the description
+    // section song counts sum to the same number of audio tracks, use those counts to slice
+    // the tracks into sets. This gives us correct sets even when filenames are ambiguous.
+    const descSections = parseSetlistFromDescription(meta.description);
+    const descSongCount = descSections
+      ? descSections.reduce((sum, s) => sum + s.songs.length, 0)
+      : 0;
+    const usableTracks = tracks.filter(t => t.title && t.duration > 0);
 
-    tracks.forEach((track, i) => {
-      const file = filesToUse[i];
-      const fname = file.name.toLowerCase();
-
-      // Detect set changes from filename patterns like d2t01, disc2
-      const discMatch = fname.match(/d(\d+)t0*1/i) || fname.match(/disc(\d+)/i) || fname.match(/set(\d+)/i);
-      if (discMatch) {
-        const discNum = parseInt(discMatch[1]);
-        if (discNum > currentSet) {
-          currentSet = discNum;
-          const label = currentSet === 3 ? 'Encore' : `Set ${currentSet}`;
-          sets.push({ number: currentSet, label, songs: [] });
+    let sets;
+    if (descSections && descSongCount === usableTracks.length) {
+      // Perfect count match — slice usableTracks into sets according to description.
+      sets = [];
+      let idx = 0;
+      descSections.forEach((section, i) => {
+        const songs = [];
+        for (let j = 0; j < section.songs.length; j++) {
+          const t = usableTracks[idx++];
+          if (!t) break;
+          songs.push({ title: t.title, duration: t.duration, position: songs.length + 1 });
         }
-      }
+        if (songs.length > 0) {
+          sets.push({ number: i + 1, label: section.label, songs });
+        }
+      });
+    } else {
+      // STRATEGY 2 (fallback): infer sets from filename patterns (d1t01, disc2, set2)
+      // or from "Encore" prefixes in titles. If nothing triggers, everything lands in Set 1
+      // and the user can hit "→ New set" on any track to split manually.
+      let currentSet = 1;
+      sets = [{ number: 1, label: 'Set 1', songs: [] }];
 
-      // Also detect from title containing "Encore" or "Set II" etc.
-      if (track.title.match(/^encore\b/i) && sets[sets.length - 1].label !== 'Encore') {
-        currentSet++;
-        sets.push({ number: currentSet, label: 'Encore', songs: [] });
-        // Remove "Encore" prefix from title if it's just a label
-        track.title = track.title.replace(/^encore\s*[-:.]?\s*/i, '').trim();
-        if (!track.title) return; // Skip if it was just an "Encore" label track
-      }
+      tracks.forEach((track, i) => {
+        const file = filesToUse[i];
+        const fname = file.name.toLowerCase();
 
-      if (track.title && track.duration > 0) {
-        sets[sets.length - 1].songs.push({
-          title: track.title,
-          duration: track.duration,
-          position: sets[sets.length - 1].songs.length + 1
-        });
-      }
-    });
+        const discMatch = fname.match(/d(\d+)t0*1/i) || fname.match(/disc(\d+)/i) || fname.match(/set(\d+)/i);
+        if (discMatch) {
+          const discNum = parseInt(discMatch[1]);
+          if (discNum > currentSet) {
+            currentSet = discNum;
+            const label = currentSet === 3 ? 'Encore' : `Set ${currentSet}`;
+            sets.push({ number: currentSet, label, songs: [] });
+          }
+        }
+
+        if (track.title.match(/^encore\b/i) && sets[sets.length - 1].label !== 'Encore') {
+          currentSet++;
+          sets.push({ number: currentSet, label: 'Encore', songs: [] });
+          track.title = track.title.replace(/^encore\s*[-:.]?\s*/i, '').trim();
+          if (!track.title) return;
+        }
+
+        if (track.title && track.duration > 0) {
+          sets[sets.length - 1].songs.push({
+            title: track.title,
+            duration: track.duration,
+            position: sets[sets.length - 1].songs.length + 1
+          });
+        }
+      });
+    }
 
     // Remove empty sets
     showData.sets = sets.filter(s => s.songs.length > 0);
