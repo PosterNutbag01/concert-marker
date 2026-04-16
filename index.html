@@ -1065,7 +1065,7 @@ function addGearRow(label = '', value = '') {
 function updateMarkerPreview() {
   const values = [...document.querySelectorAll('.gear-value')].map(el => el.value.trim()).filter(v => v);
   const band = showData.band || 'ph';
-  const date = (showData.date || '2025-01-01').replace(/-/g, '.');
+  const date = showData.date || '2025-01-01';
   const fmt = document.getElementById('setFormat').value;
   const setStr = fmt === 'se' ? 'se1' : 's01';
   const gear = values.length ? values.join('.') + '.' : '';
@@ -1106,7 +1106,7 @@ function calculateMarkers() {
   const gearValues = [...document.querySelectorAll('.gear-value')].map(el => el.value.trim()).filter(v => v);
   const gear = gearValues.length ? gearValues.join('.') + '.' : '';
   const band = showData.band || 'ph';
-  const date = (showData.date || '').replace(/-/g, '.');
+  const date = showData.date || '';
 
   calculatedMarkers = [];
   let globalTrack = 0;
@@ -1289,11 +1289,11 @@ function generateCue() {
   const venue = (showData.venue || '').replace(/"/g, '\\"');
   const titleParts = [date, venue].filter(x => x);
   const title = titleParts.join(' ').replace(/"/g, '\\"') || 'Live Show';
-  const dateForFile = date.replace(/-/g, '.');
+  const dateForFile = date;
   const year = (date.match(/^(\d{4})/) || [])[1] || '';
 
   const gearValues = [...document.querySelectorAll('.gear-value')].map(el => el.value.trim()).filter(v => v);
-  const gearStr = gearValues.length ? '.' + gearValues.join('.') : '';
+  const gearStr = gearValues.length ? gearValues.join('.') : '';
   const audioFile = `${showData.band || 'show'}${dateForFile}${gearStr}.flac`;
 
   const toCueTime = (secs) => {
@@ -1430,9 +1430,9 @@ function downloadTextFile() {
     text += `Notes:\n${notes}\n`;
   }
 
-  // Generate filename — abbreviation.date.signalchain.txt
-  const dateForFile = date.replace(/-/g, '.');
-  const gearStr = gearValues.length ? '.' + gearValues.join('.') : '';
+  // Generate filename — abbreviationYYYY-MM-DDgear.gear.gear.txt (matches marker convention)
+  const dateForFile = date;
+  const gearStr = gearValues.length ? gearValues.join('.') : '';
   const filename = `${band}${dateForFile}${gearStr}.txt`;
 
   const blob = new Blob([text], { type: 'text/plain' });
