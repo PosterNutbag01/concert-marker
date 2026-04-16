@@ -709,9 +709,11 @@ function parseSetlistFromDescription(description) {
   const lines = text.split(/\n+/).map(l => l.trim()).filter(l => l);
   if (lines.length === 0) return null;
 
-  // Match "Set 1:", "Set I", "Set One", "Encore:", "E:" as section headings.
+  // Match "Set 1:", "Set I", "Set One", "Encore:" as section headings.
   // Allow trailing inline content after the colon for cases like "Set 1: Song, Song, Song".
-  const headingRe = /^(set\s+(?:\d+|[ivx]+|one|two|three|four|five)|encore|e)\b\s*[:.\-–—]?\s*(.*)$/i;
+  // Note: bare "E" (single letter) is deliberately NOT treated as a heading — it would
+  // false-match song-title edge cases. Descriptions always spell out "Encore".
+  const headingRe = /^(set\s+(?:\d+|[ivx]+|one|two|three|four|five)|encore)\b\s*[:.\-–—]?\s*(.*)$/i;
 
   const romanToNum = { i: 1, ii: 2, iii: 3, iv: 4, v: 5 };
   const wordToNum = { one: 1, two: 2, three: 3, four: 4, five: 5 };
@@ -911,19 +913,27 @@ async function fetchFromArchive() {
     let sets;
     if (descSections && descSongCount === usableTracks.length) {
       // Perfect count match — slice usableTracks into sets according to description.
+      // Encore rule: encore tracks roll into the previous set (final set = encore).
       sets = [];
       let idx = 0;
-      descSections.forEach((section, i) => {
-        const songs = [];
+      descSections.forEach((section) => {
+        const takenSongs = [];
         for (let j = 0; j < section.songs.length; j++) {
           const t = usableTracks[idx++];
           if (!t) break;
-          songs.push({ title: t.title, duration: t.duration, position: songs.length + 1 });
+          takenSongs.push({ title: t.title, duration: t.duration, position: 0 });
         }
-        if (songs.length > 0) {
-          sets.push({ number: i + 1, label: section.label, songs });
+        if (takenSongs.length === 0) return;
+        if (section.label === 'Encore' && sets.length > 0) {
+          // Append encore tracks to the final set instead of creating a new one.
+          const target = sets[sets.length - 1];
+          takenSongs.forEach(s => target.songs.push(s));
+        } else {
+          sets.push({ number: sets.length + 1, label: section.label, songs: takenSongs });
         }
       });
+      // Renumber songs within each set now that encore tracks may have joined.
+      sets.forEach(set => set.songs.forEach((s, i) => { s.position = i + 1; }));
     } else {
       // STRATEGY 2 (fallback): infer sets from filename patterns (d1t01, disc2, set2)
       // or from "Encore" prefixes in titles. If nothing triggers, everything lands in Set 1
@@ -935,19 +945,19 @@ async function fetchFromArchive() {
         const file = filesToUse[i];
         const fname = file.name.toLowerCase();
 
+        // New-set trigger: only filename-based disc/set markers. Encore stays in the current set.
         const discMatch = fname.match(/d(\d+)t0*1/i) || fname.match(/disc(\d+)/i) || fname.match(/set(\d+)/i);
         if (discMatch) {
           const discNum = parseInt(discMatch[1]);
           if (discNum > currentSet) {
             currentSet = discNum;
-            const label = currentSet === 3 ? 'Encore' : `Set ${currentSet}`;
-            sets.push({ number: currentSet, label, songs: [] });
+            sets.push({ number: currentSet, label: `Set ${currentSet}`, songs: [] });
           }
         }
 
-        if (track.title.match(/^encore\b/i) && sets[sets.length - 1].label !== 'Encore') {
-          currentSet++;
-          sets.push({ number: currentSet, label: 'Encore', songs: [] });
+        // Strip an "Encore" title prefix but DO NOT create a new set — encore folds into
+        // the current (final) set per convention.
+        if (track.title.match(/^encore\b/i)) {
           track.title = track.title.replace(/^encore\s*[-:.]?\s*/i, '').trim();
           if (!track.title) return;
         }
@@ -1005,21 +1015,37 @@ async function fetchSetlist() {
     showData.venue = data.venue_name || data.venue?.name || '';
     const tracks = data.tracks || [];
 
-    // Group by set — skip soundcheck
+    // Group by set — skip soundcheck. Encore ("E") is merged into the final numbered set
+    // per taper convention: encore is part of the last set, not its own.
     const setMap = {};
     tracks.forEach(t => {
       const setLabel = t.set || t.set_name || '1';
-      // Skip soundcheck tracks (phish.in labels them as "S" or "Soundcheck")
-      if (setLabel === 'S' || setLabel.toLowerCase() === 'soundcheck') return;
+      if (setLabel === 'S' || String(setLabel).toLowerCase() === 'soundcheck') return;
       if (!setMap[setLabel]) setMap[setLabel] = [];
-      // phish.in returns duration in milliseconds — always convert to seconds
       const durSec = Math.round(t.duration / 1000);
-      setMap[setLabel].push({ title: t.title, duration: durSec, position: setMap[setLabel].length + 1 });
+      setMap[setLabel].push({ title: t.title, duration: durSec });
     });
 
-    showData.sets = Object.entries(setMap).map(([label, songs], i) => ({
-      number: i + 1, label: label === 'E' ? 'Encore' : `Set ${label}`, songs
+    // Split numbered sets from encore, preserving numeric ordering.
+    const numberedLabels = Object.keys(setMap)
+      .filter(k => k !== 'E')
+      .sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    const encoreSongs = setMap['E'] || [];
+
+    showData.sets = numberedLabels.map((label, i) => ({
+      number: i + 1,
+      label: `Set ${label}`,
+      songs: setMap[label].map((s, j) => ({ ...s, position: j + 1 }))
     }));
+
+    // Fold encore tracks into the last numbered set.
+    if (encoreSongs.length > 0 && showData.sets.length > 0) {
+      const last = showData.sets[showData.sets.length - 1];
+      encoreSongs.forEach(s => last.songs.push({ ...s, position: last.songs.length + 1 }));
+    } else if (encoreSongs.length > 0) {
+      // No numbered sets at all (shouldn't happen for a normal show) — make encore Set 1.
+      showData.sets = [{ number: 1, label: 'Set 1', songs: encoreSongs.map((s, j) => ({ ...s, position: j + 1 })) }];
+    }
 
     renderSetlist();
     showStatus('fetchStatus', `Found: ${showData.venue || date}`, 'success');
@@ -1097,19 +1123,13 @@ function mergeSetIntoPrevious(setIdx) {
   renderSetlist();
 }
 
-// Re-derive set numbers + labels after any split/merge. Encores get the "Encore"
-// label only if the set is clearly an encore by prior tagging; otherwise sets are
-// numbered 1..N to keep marker filenames like s01/s02/s03 predictable.
+// Re-derive set numbers + labels after any split/merge. Encore is never a standalone
+// set in this app — encore tracks are always folded into the final set — so labels
+// are strictly "Set 1", "Set 2", "Set 3"... matching marker filenames s01/s02/s03.
 function renumberSets() {
   showData.sets.forEach((set, i) => {
     set.number = i + 1;
-    // Preserve an explicit "Encore" label only if it was already there AND this is the last set.
-    const isLast = i === showData.sets.length - 1;
-    if (set.label === 'Encore' && isLast) {
-      // keep as Encore
-    } else {
-      set.label = `Set ${i + 1}`;
-    }
+    set.label = `Set ${i + 1}`;
   });
 }
 
@@ -1143,7 +1163,7 @@ function addSetBreak() {
   const div = document.createElement('div');
   div.className = 'set-header';
   div.style.marginTop = '12px';
-  div.textContent = manualSetCount === 3 ? 'Encore' : `Set ${manualSetCount}`;
+  div.textContent = `Set ${manualSetCount}`;
   document.getElementById('manualSongs').appendChild(div);
 }
 
@@ -1169,8 +1189,8 @@ function parseManualSetlist() {
   });
 
   showData.venue = document.getElementById('manualVenue').value.trim();
-  showData.sets = Object.entries(setMap).map(([num, songs], i) => ({
-    number: parseInt(num), label: parseInt(num) === 3 ? 'Encore' : `Set ${num}`, songs
+  showData.sets = Object.entries(setMap).map(([num, songs]) => ({
+    number: parseInt(num), label: `Set ${num}`, songs
   }));
 
   renderSetlist();
