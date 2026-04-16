@@ -219,7 +219,21 @@
   .song-row:nth-child(odd) { background: var(--accent-light); }
   .song-row .track-num { font-family: var(--mono); color: var(--text-dim); width: 36px; font-size: 0.78rem; }
   .song-row .song-name { flex: 1; font-weight: 500; }
-  .song-row .duration { font-family: var(--mono); color: var(--text-dim); font-size: 0.82rem; font-weight: 500; }
+  .song-row .duration { font-family: var(--mono); color: var(--text-dim); font-size: 0.82rem; font-weight: 500; margin-right: 8px; }
+
+  .song-row .split-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    font-size: 0.7rem; padding: 3px 7px; border-radius: 4px; cursor: pointer;
+    font-family: var(--heading); letter-spacing: 0.3px; white-space: nowrap;
+  }
+  .song-row .split-btn:hover { background: var(--accent-light); color: var(--text); border-color: var(--text-dim); }
+  .set-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .set-header .merge-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    font-size: 0.7rem; padding: 3px 7px; border-radius: 4px; cursor: pointer;
+    font-family: var(--heading); letter-spacing: 0.3px;
+  }
+  .set-header .merge-btn:hover { background: var(--accent-light); color: var(--red); border-color: var(--red); }
 
   /* Gear Chain */
   .gear-row {
@@ -923,23 +937,82 @@ async function fetchSetlist() {
 function renderSetlist() {
   let html = '';
   let globalTrack = 0;
-  showData.sets.forEach(set => {
-    html += `<div class="setlist-group"><div class="set-header">${set.label}</div>`;
-    set.songs.forEach(song => {
+  showData.sets.forEach((set, setIdx) => {
+    const mergeBtn = setIdx > 0
+      ? `<button class="merge-btn" onclick="mergeSetIntoPrevious(${setIdx})" title="Merge this set back into the previous one">⇠ Merge with ${showData.sets[setIdx - 1].label}</button>`
+      : '';
+    html += `<div class="setlist-group"><div class="set-header"><span>${set.label}</span>${mergeBtn}</div>`;
+    set.songs.forEach((song, songIdx) => {
       globalTrack++;
       const mins = Math.floor(song.duration / 60);
       const secs = Math.floor(song.duration % 60);
       const dur = `${mins}:${String(secs).padStart(2, '0')}`;
+      // Split action: moves this track + everything after it (in this set) into a new set.
+      // Hidden on first track of Set 1 (nothing meaningful to split before it).
+      const canSplit = !(setIdx === 0 && songIdx === 0);
+      const splitBtn = canSplit
+        ? `<button class="split-btn" onclick="splitSetAtTrack(${setIdx}, ${songIdx})" title="Start a new set here">→ New set</button>`
+        : '';
       html += `<div class="song-row">
         <span class="track-num">${String(globalTrack).padStart(2, '0')}</span>
         <span class="song-name">${song.title}</span>
         <span class="duration">${dur}</span>
+        ${splitBtn}
       </div>`;
     });
     html += '</div>';
   });
   document.getElementById('setlistDisplay').innerHTML = html;
   if (typeof scheduleAutosave === 'function') scheduleAutosave();
+}
+
+// Split set at this track: move track `songIdx` and everything after it in `setIdx`
+// into a brand-new set inserted immediately after. Renumbers all downstream sets.
+function splitSetAtTrack(setIdx, songIdx) {
+  const set = showData.sets[setIdx];
+  if (!set || songIdx <= 0 || songIdx >= set.songs.length + (setIdx === 0 ? 1 : 0)) {
+    // songIdx === 0 on a non-first set is still allowed (moves the whole set's worth forward)
+    if (!(setIdx > 0 && songIdx === 0)) return;
+  }
+  const moved = set.songs.splice(songIdx);
+  if (moved.length === 0) return;
+  // Re-position the remaining songs in the original set.
+  set.songs.forEach((s, i) => { s.position = i + 1; });
+  moved.forEach((s, i) => { s.position = i + 1; });
+  const newSet = { number: 0, label: '', songs: moved };
+  showData.sets.splice(setIdx + 1, 0, newSet);
+  renumberSets();
+  renderSetlist();
+}
+
+// Merge set `setIdx` (>=1) back into set `setIdx - 1`, then renumber.
+function mergeSetIntoPrevious(setIdx) {
+  if (setIdx <= 0 || setIdx >= showData.sets.length) return;
+  const prev = showData.sets[setIdx - 1];
+  const cur = showData.sets[setIdx];
+  cur.songs.forEach(s => {
+    s.position = prev.songs.length + 1;
+    prev.songs.push(s);
+  });
+  showData.sets.splice(setIdx, 1);
+  renumberSets();
+  renderSetlist();
+}
+
+// Re-derive set numbers + labels after any split/merge. Encores get the "Encore"
+// label only if the set is clearly an encore by prior tagging; otherwise sets are
+// numbered 1..N to keep marker filenames like s01/s02/s03 predictable.
+function renumberSets() {
+  showData.sets.forEach((set, i) => {
+    set.number = i + 1;
+    // Preserve an explicit "Encore" label only if it was already there AND this is the last set.
+    const isLast = i === showData.sets.length - 1;
+    if (set.label === 'Encore' && isLast) {
+      // keep as Encore
+    } else {
+      set.label = `Set ${i + 1}`;
+    }
+  });
 }
 
 // Manual Entry
