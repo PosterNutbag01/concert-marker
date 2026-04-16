@@ -323,6 +323,27 @@
   .status.error { background: rgba(204,51,51,0.06); color: var(--red); border: 1px solid rgba(204,51,51,0.15); border-radius: 8px; }
   .status.info { background: var(--accent-light); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
 
+  .fetch-error {
+    background: rgba(204,51,51,0.06);
+    border: 1px solid rgba(204,51,51,0.25);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 12px;
+  }
+  .fetch-error-title { font-weight: 700; color: var(--red); font-size: 0.95rem; margin-bottom: 4px; font-family: var(--heading); }
+  .fetch-error-msg { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 12px; line-height: 1.45; }
+  .fetch-error-detail { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); margin-top: 6px; opacity: 0.7; }
+  .fetch-error-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .fetch-error-actions a.btn-secondary { display: inline-block; text-decoration: none; line-height: 1; }
+
+  .btn-spinner {
+    display: inline-block; width: 11px; height: 11px;
+    border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
+    border-radius: 50%; animation: btn-spin 0.7s linear infinite;
+    vertical-align: -1px; margin-right: 8px;
+  }
+  @keyframes btn-spin { to { transform: rotate(360deg); } }
+
   .nav-buttons {
     display: flex;
     justify-content: space-between;
@@ -385,8 +406,9 @@
       </div>
     </div>
 
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button class="btn-primary" onclick="fetchSetlist()">Fetch from phish.in</button>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="btn-primary" id="fetchPhishBtn" onclick="fetchSetlist()">Fetch from phish.in</button>
+      <button class="btn-primary" id="searchArchiveBtn" onclick="fetchFromArchiveByDate()">Search Archive.org</button>
       <button class="btn-secondary" onclick="showManualEntry()">Manual Entry</button>
     </div>
 
@@ -394,7 +416,7 @@
       <label>Archive.org URL or Identifier</label>
       <p style="font-size:0.78rem;color:var(--text-dim);margin:-12px 0 8px;">Band, date, and setlist auto-populate</p>
       <input type="text" id="archiveId" placeholder="e.g. https://archive.org/details/phish2019-08-31.cmc6mk4.flac16">
-      <button class="btn-primary" onclick="fetchFromArchive()">Fetch from Archive.org</button>
+      <button class="btn-primary" id="fetchArchiveBtn" onclick="fetchFromArchive()">Fetch from Archive.org</button>
     </div>
 
     <div id="fetchStatus"></div>
@@ -570,6 +592,85 @@ function goToStep(n) {
 // ============================================================
 
 // ============================================================
+// STEP 1: ARCHIVE.ORG SEARCH BY BAND + DATE
+// ============================================================
+// Abbreviation → archive.org creator name. Lets users search by typing
+// "ph" + "2019-08-31" instead of hunting for an identifier.
+const ABBREV_TO_CREATOR = {
+  ph: 'Phish',
+  gd: 'Grateful Dead',
+  goo: 'Goose',
+  moe: 'moe.',
+  wsp: 'Widespread Panic',
+  sci: 'The String Cheese Incident',
+  um: "Umphrey's McGee",
+  bsm: 'Billy Strings',
+  tab: 'Trey Anastasio Band',
+  dc: 'Dead & Company',
+  dis: 'Dispatch',
+  sts9: 'STS9',
+  tdb: 'The Disco Biscuits',
+  lot: 'Lotus',
+  gm: "Gov't Mule",
+  mmw: 'Medeski Martin & Wood',
+  spa: 'Spafford',
+  pppp: 'Pigeons Playing Ping Pong',
+  dop: 'Dopapod',
+  aq: 'Aqueous',
+  let: 'Lettuce',
+  sp: 'Snarky Puppy',
+  khr: 'Khruangbin'
+};
+
+async function fetchFromArchiveByDate() {
+  const band = document.getElementById('band').value.trim().toLowerCase();
+  const bandFull = document.getElementById('bandFull').value.trim();
+  const date = document.getElementById('showDate').value.trim();
+
+  if (!date) { showStatus('fetchStatus', 'Enter a date (YYYY-MM-DD).', 'error'); return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    showStatus('fetchStatus', 'Date must be YYYY-MM-DD.', 'error'); return;
+  }
+
+  // Prefer the full band name; fall back to abbrev→creator map; last resort, abbrev itself.
+  const creator = bandFull || ABBREV_TO_CREATOR[band] || band;
+  if (!creator) {
+    showStatus('fetchStatus', 'Enter a band name or abbreviation.', 'error'); return;
+  }
+
+  setFetchBusy('searchArchiveBtn', true, 'Searching…');
+  showStatus('fetchStatus', `Searching archive.org for ${creator} — ${date}…`, 'info');
+
+  try {
+    // etree collection = live-music uploads. Sort by downloads to surface the most-trusted source.
+    const q = `collection:etree AND creator:"${creator}" AND date:${date}`;
+    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}`
+      + `&fl[]=identifier&fl[]=title&fl[]=downloads&fl[]=avg_rating`
+      + `&sort[]=downloads+desc&rows=5&output=json`;
+    const data = await fetchJsonWithRetry(url);
+
+    const docs = (data && data.response && data.response.docs) || [];
+    if (docs.length === 0) {
+      const err = new Error(`No etree recordings found for "${creator}" on ${date}.`);
+      err.status = 404;
+      throw err;
+    }
+
+    // Top result wins (most-downloaded = community-vetted). Fill the field so the user
+    // can see which identifier was chosen and re-run manually if they want a different one.
+    const top = docs[0];
+    document.getElementById('archiveId').value = top.identifier;
+
+    // Delegate to the identifier-based fetcher for the actual setlist parse.
+    await fetchFromArchive();
+  } catch (e) {
+    showFetchError('fetchStatus', 'archive.org', e, 'fetchFromArchiveByDate');
+  } finally {
+    setFetchBusy('searchArchiveBtn', false);
+  }
+}
+
+// ============================================================
 // STEP 1: ARCHIVE.ORG ETREE FETCH
 // ============================================================
 async function fetchFromArchive() {
@@ -585,11 +686,17 @@ async function fetchFromArchive() {
   }
 
   showStatus('fetchStatus', `Fetching from archive.org: ${input}...`, 'info');
+  setFetchBusy('fetchArchiveBtn', true);
 
   try {
-    const resp = await fetch(`https://archive.org/metadata/${input}`);
-    if (!resp.ok) throw new Error(`Item not found (${resp.status})`);
-    const data = await resp.json();
+    const data = await fetchJsonWithRetry(`https://archive.org/metadata/${input}`);
+
+    // archive.org returns 200 with an empty object for unknown IDs — treat that as a 404.
+    if (!data || (!data.files && !data.metadata)) {
+      const err = new Error(`No item "${input}" on archive.org`);
+      err.status = 404;
+      throw err;
+    }
 
     if (!data.files || data.files.length === 0) {
       throw new Error('No files found in this item');
@@ -759,7 +866,9 @@ async function fetchFromArchive() {
     document.getElementById('toStep2').disabled = false;
 
   } catch (e) {
-    showStatus('fetchStatus', `Archive.org error: ${e.message}. Try a different identifier or use manual entry.`, 'error');
+    showFetchError('fetchStatus', 'archive.org', e, 'fetchFromArchive');
+  } finally {
+    setFetchBusy('fetchArchiveBtn', false);
   }
 }
 
@@ -776,11 +885,10 @@ async function fetchSetlist() {
   showData.date = date;
 
   showStatus('fetchStatus', 'Fetching from phish.in...', 'info');
+  setFetchBusy('fetchPhishBtn', true);
 
   try {
-    const resp = await fetch(`https://phish.in/api/v2/shows/${date}`);
-    if (!resp.ok) throw new Error('Show not found');
-    const data = await resp.json();
+    const data = await fetchJsonWithRetry(`https://phish.in/api/v2/shows/${date}`);
 
     showData.venue = data.venue_name || data.venue?.name || '';
     const tracks = data.tracks || [];
@@ -806,7 +914,9 @@ async function fetchSetlist() {
     document.getElementById('toStep2').disabled = false;
     document.getElementById('manualEntry').style.display = 'none';
   } catch (e) {
-    showStatus('fetchStatus', `Could not fetch show. Try manual entry. (${e.message})`, 'error');
+    showFetchError('fetchStatus', 'phish.in', e, 'fetchSetlist');
+  } finally {
+    setFetchBusy('fetchPhishBtn', false);
   }
 }
 
@@ -1341,6 +1451,133 @@ function downloadTextFile() {
 // ============================================================
 function showStatus(elId, msg, type) {
   document.getElementById(elId).innerHTML = `<div class="status ${type}">${msg}</div>`;
+}
+
+// ============================================================
+// FETCH HELPERS: auto-retry + rich error panel
+// ============================================================
+// Transient failures (network hiccup, 5xx, 429) silently retry once before
+// surfacing an error. When an error does surface, users get a Retry button
+// and a one-click path into manual entry — no more dead-ends.
+
+async function fetchJsonWithRetry(url, { retries = 1, backoffMs = 800 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        const err = new Error(`HTTP ${resp.status}`);
+        err.status = resp.status;
+        const transient = resp.status >= 500 || resp.status === 429;
+        if (transient && attempt < retries) {
+          lastErr = err;
+          await new Promise(r => setTimeout(r, backoffMs));
+          continue;
+        }
+        throw err;
+      }
+      return await resp.json();
+    } catch (e) {
+      lastErr = e;
+      const isNetwork = !e.status && /fetch|network|load failed/i.test(String(e.message || e));
+      if (isNetwork && attempt < retries) {
+        await new Promise(r => setTimeout(r, backoffMs));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+function classifyFetchError(error, source) {
+  const msg = String(error && error.message || error);
+  const status = error && error.status;
+  if (status === 404) return {
+    retryable: false,
+    title: 'Show not found',
+    hint: `${source} doesn't have this show. Double-check the ${source === 'phish.in' ? 'date' : 'identifier'} — or enter it manually.`
+  };
+  if (status === 429) return {
+    retryable: true,
+    title: 'Rate limited',
+    hint: `${source} is throttling requests. Wait a moment and retry.`
+  };
+  if (status >= 500 && status < 600) return {
+    retryable: true,
+    title: `${source} is having trouble`,
+    hint: `Server returned ${status}. Usually temporary — try again in a few seconds.`
+  };
+  if (!status && /fetch|network|load failed/i.test(msg)) return {
+    retryable: true,
+    title: 'Network error',
+    hint: `Couldn't reach ${source}. Check your connection (or VPN) and retry.`
+  };
+  if (/No audio|No files|Could not parse|tracks with titles/i.test(msg)) return {
+    retryable: false,
+    title: "Couldn't read this show",
+    hint: 'The source returned data, but no usable tracks. The item may be metadata-only or in an unsupported format.'
+  };
+  return {
+    retryable: true,
+    title: 'Something went wrong',
+    hint: 'Retry, or switch to manual entry.'
+  };
+}
+
+function sourceInspectUrl(source) {
+  if (source === 'phish.in') {
+    const date = (document.getElementById('showDate').value || '').trim();
+    return date ? `https://phish.in/${encodeURIComponent(date)}` : 'https://phish.in/';
+  }
+  let input = (document.getElementById('archiveId').value || '').trim();
+  const m = input.match(/\/details\/([^\/\?#]+)/);
+  const id = m ? m[1] : input;
+  return id ? `https://archive.org/details/${encodeURIComponent(id)}` : 'https://archive.org/';
+}
+
+function showFetchError(elId, source, error, retryFnName) {
+  const { retryable, title, hint } = classifyFetchError(error, source);
+  const detail = String(error && error.message || error).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+  const retryBtn = retryable && retryFnName
+    ? `<button class="btn-primary btn-small" onclick="${retryFnName}()">↻ Retry</button>`
+    : '';
+  const inspectUrl = sourceInspectUrl(source);
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = `
+    <div class="fetch-error" role="alert">
+      <div class="fetch-error-title">${title}</div>
+      <div class="fetch-error-msg">${hint}</div>
+      <div class="fetch-error-actions">
+        ${retryBtn}
+        <button class="btn-secondary btn-small" onclick="switchToManualFromError()">Switch to manual entry</button>
+        <a class="btn-secondary btn-small" href="${inspectUrl}" target="_blank" rel="noopener">Open ${source} ↗</a>
+      </div>
+      <div class="fetch-error-detail">${detail}</div>
+    </div>`;
+}
+
+function switchToManualFromError() {
+  // Clear the error panel and open manual entry, carrying band/date forward.
+  const s = document.getElementById('fetchStatus');
+  if (s) s.innerHTML = '';
+  showManualEntry();
+  const manual = document.getElementById('manualEntry');
+  if (manual && manual.scrollIntoView) manual.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function setFetchBusy(btnId, busy, busyLabel) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (busy) {
+    if (!btn.dataset.origLabel) btn.dataset.origLabel = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="btn-spinner"></span>${busyLabel || 'Fetching…'}`;
+  } else {
+    btn.disabled = false;
+    if (btn.dataset.origLabel) btn.textContent = btn.dataset.origLabel;
+  }
 }
 
 // ============================================================
