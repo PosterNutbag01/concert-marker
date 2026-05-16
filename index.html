@@ -403,7 +403,7 @@
   <!-- STEP 1: Show Info -->
   <div class="panel active" id="step1">
     <h2>Show Info</h2>
-    <p class="desc">Fetch a setlist from phish.in or archive.org, or enter songs manually.</p>
+    <p class="desc">Fetch a setlist from phish.in, archive.org, or nugs.net — or enter songs manually.</p>
 
     <div class="row">
       <div>
@@ -431,6 +431,13 @@
       <p style="font-size:0.78rem;color:var(--text-dim);margin:-12px 0 8px;">Band, date, and setlist auto-populate</p>
       <input type="text" id="archiveId" placeholder="e.g. https://archive.org/details/phish2019-08-31.cmc6mk4.flac16">
       <button class="btn-primary" id="fetchArchiveBtn" onclick="fetchFromArchive()">Fetch from Archive.org</button>
+    </div>
+
+    <div style="border-top:1.5px solid var(--surface2);padding-top:16px;margin-bottom:16px;">
+      <label>Nugs.net URL</label>
+      <p style="font-size:0.78rem;color:var(--text-dim);margin:-12px 0 8px;">Band, date, venue, and setlist auto-populate. Encore folds into the final set.</p>
+      <input type="text" id="nugsUrl" placeholder="e.g. https://www.nugs.net/live-download-of-eggy-3s-artspace-portsmouth-nh-05-14-2026-mp3-flac-or-online-music-streaming/48484.html">
+      <button class="btn-primary" id="fetchNugsBtn" onclick="fetchFromNugs()">Fetch from Nugs.net</button>
     </div>
 
     <div id="fetchStatus"></div>
@@ -575,7 +582,7 @@
   </div>
 
   <footer>
-    <a href="https://github.com/PosterNutbag01/concert-marker">GitHub</a> · Data from <a href="https://phish.in">phish.in</a> &amp; <a href="https://archive.org/details/etree">archive.org</a> · Built for tapers
+    <a href="https://github.com/PosterNutbag01/concert-marker">GitHub</a> · Data from <a href="https://phish.in">phish.in</a>, <a href="https://archive.org/details/etree">archive.org</a> &amp; <a href="https://www.nugs.net">nugs.net</a> · Built for tapers
   </footer>
 </div>
 
@@ -1055,6 +1062,171 @@ async function fetchSetlist() {
     showFetchError('fetchStatus', 'phish.in', e, 'fetchSetlist');
   } finally {
     setFetchBusy('fetchPhishBtn', false);
+  }
+}
+
+// ============================================================
+// STEP 1: NUGS.NET HTML FETCH
+// ============================================================
+// nugs.net doesn't send CORS headers, so we route through public CORS proxies
+// with a fallback chain. Page is plain HTML — parsed with DOMParser.
+
+const NUGS_PROXIES = [
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+];
+
+async function fetchTextViaProxy(targetUrl) {
+  let lastErr;
+  for (const proxy of NUGS_PROXIES) {
+    try {
+      const resp = await fetch(proxy(targetUrl));
+      if (!resp.ok) {
+        const err = new Error(`HTTP ${resp.status}`);
+        err.status = resp.status;
+        lastErr = err;
+        continue;
+      }
+      const text = await resp.text();
+      if (!text || text.length < 500) {
+        lastErr = new Error('Empty response from proxy');
+        continue;
+      }
+      return text;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('All proxies failed');
+}
+
+// Parse a nugs.net product page. Returns { bandName, venue, date, sets }.
+// Title pattern: "{Band} Live Concert Setlist at {Venue}, {City}, {State} on MM-DD-YYYY"
+// Setlist: <h6> section headers (Set One/Two/Three, Encore) followed by
+// <span class="item-name">{title}</span> + <span class="runningTime">{seconds}</span> pairs.
+function parseNugsHtml(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  let bandName = '', venue = '', date = '';
+  const titleText = (doc.querySelector('title')?.textContent || '').trim();
+  const titleMatch = titleText.match(/^(.+?)\s+Live Concert Setlist at\s+(.+?)\s+on\s+(\d{1,2})-(\d{1,2})-(\d{4})/i);
+  if (titleMatch) {
+    bandName = titleMatch[1].trim();
+    venue = titleMatch[2].trim();
+    const mm = titleMatch[3].padStart(2, '0');
+    const dd = titleMatch[4].padStart(2, '0');
+    date = `${titleMatch[5]}-${mm}-${dd}`;
+  }
+
+  // Take the first product-set-list (the page often duplicates it for mobile/desktop)
+  const container = doc.querySelector('.product-set-list');
+  if (!container) throw new Error('No setlist found on this page');
+
+  // Walk the container in document order so <h6> section headers split the items.
+  const rawSections = [];
+  let current = null;
+  const walk = (node) => {
+    if (!node || node.nodeType !== 1) return;
+    if (node.tagName === 'H6') {
+      current = { label: (node.textContent || '').trim(), songs: [] };
+      rawSections.push(current);
+      return;
+    }
+    if (node.classList && node.classList.contains('product-set-item')) {
+      if (!current) { current = { label: 'Set 1', songs: [] }; rawSections.push(current); }
+      const title = (node.querySelector('.item-name')?.textContent || '').trim();
+      const durTxt = (node.querySelector('.runningTime')?.textContent || '').trim();
+      const dur = parseInt(durTxt, 10);
+      if (title) current.songs.push({ title, duration: Number.isFinite(dur) ? dur : 0 });
+      return;
+    }
+    for (const child of node.children) walk(child);
+  };
+  walk(container);
+
+  if (rawSections.length === 0 || rawSections.every(s => s.songs.length === 0)) {
+    throw new Error('No tracks found in the setlist');
+  }
+
+  // Normalize labels and fold encore into the last numbered set (taper convention).
+  const wordToNum = { one:1, two:2, three:3, four:4, five:5, six:6 };
+  const numbered = [];
+  const encore = [];
+  rawSections.forEach(s => {
+    const label = s.label.toLowerCase();
+    if (/^encore/.test(label)) { encore.push(...s.songs); return; }
+    const m = label.match(/^set\s+(\d+|one|two|three|four|five|six)/);
+    const n = m ? (wordToNum[m[1]] || parseInt(m[1], 10)) : (numbered.length + 1);
+    numbered.push({ number: n, label: `Set ${n}`, songs: s.songs });
+  });
+  numbered.forEach((s, i) => { s.number = i + 1; s.label = `Set ${i + 1}`; });
+  if (encore.length > 0 && numbered.length > 0) {
+    numbered[numbered.length - 1].songs.push(...encore);
+  } else if (encore.length > 0) {
+    numbered.push({ number: 1, label: 'Set 1', songs: encore });
+  }
+  numbered.forEach(set => {
+    set.songs = set.songs.map((s, j) => ({ ...s, position: j + 1 }));
+  });
+
+  return { bandName, venue, date, sets: numbered };
+}
+
+async function fetchFromNugs() {
+  const input = (document.getElementById('nugsUrl').value || '').trim();
+  if (!input) { showStatus('fetchStatus', 'Enter a nugs.net URL.', 'error'); return; }
+  if (!/^https?:\/\/(www\.)?nugs\.net\//i.test(input)) {
+    showStatus('fetchStatus', "That doesn't look like a nugs.net URL.", 'error'); return;
+  }
+
+  showStatus('fetchStatus', 'Fetching from nugs.net…', 'info');
+  setFetchBusy('fetchNugsBtn', true);
+
+  try {
+    const html = await fetchTextViaProxy(input);
+    const parsed = parseNugsHtml(html);
+
+    if (parsed.bandName && !document.getElementById('bandFull').value.trim()) {
+      showData.bandFull = parsed.bandName;
+      document.getElementById('bandFull').value = parsed.bandName;
+    } else {
+      showData.bandFull = document.getElementById('bandFull').value.trim() || parsed.bandName;
+    }
+
+    const currentAbbrev = (document.getElementById('band').value || '').trim();
+    if ((!currentAbbrev || currentAbbrev === 'ph') && parsed.bandName) {
+      const knownAbbrevs = {
+        'phish':'ph','grateful dead':'gd','goose':'goo','moe.':'moe','moe':'moe',
+        'widespread panic':'wsp','string cheese incident':'sci','the string cheese incident':'sci',
+        "umphrey's mcgee":'um','billy strings':'bsm','trey anastasio':'tab','trey anastasio band':'tab',
+        'dead & company':'dc','dead and company':'dc','eggy':'egg',
+      };
+      const lower = parsed.bandName.toLowerCase();
+      const abbrev = knownAbbrevs[lower] || lower.replace(/[^a-z]/g, '').substring(0, 3);
+      if (abbrev) {
+        showData.band = abbrev;
+        document.getElementById('band').value = abbrev;
+      }
+    } else {
+      showData.band = currentAbbrev.toLowerCase().replace(/\s+/g, '');
+    }
+
+    if (parsed.date && !document.getElementById('showDate').value.trim()) {
+      document.getElementById('showDate').value = parsed.date;
+    }
+    showData.date = parsed.date || document.getElementById('showDate').value.trim();
+    showData.venue = parsed.venue || '';
+    showData.sets = parsed.sets;
+
+    renderSetlist();
+    showStatus('fetchStatus', `Found: ${showData.venue || showData.date}`, 'success');
+    document.getElementById('toStep2').disabled = false;
+    document.getElementById('manualEntry').style.display = 'none';
+  } catch (e) {
+    showFetchError('fetchStatus', 'nugs.net', e, 'fetchFromNugs');
+  } finally {
+    setFetchBusy('fetchNugsBtn', false);
   }
 }
 
@@ -1687,7 +1859,7 @@ function classifyFetchError(error, source) {
   if (status === 404) return {
     retryable: false,
     title: 'Show not found',
-    hint: `${source} doesn't have this show. Double-check the ${source === 'phish.in' ? 'date' : 'identifier'} — or enter it manually.`
+    hint: `${source} doesn't have this show. Double-check the ${source === 'phish.in' ? 'date' : source === 'nugs.net' ? 'URL' : 'identifier'} — or enter it manually.`
   };
   if (status === 429) return {
     retryable: true,
@@ -1720,6 +1892,10 @@ function sourceInspectUrl(source) {
   if (source === 'phish.in') {
     const date = (document.getElementById('showDate').value || '').trim();
     return date ? `https://phish.in/${encodeURIComponent(date)}` : 'https://phish.in/';
+  }
+  if (source === 'nugs.net') {
+    const url = (document.getElementById('nugsUrl')?.value || '').trim();
+    return url || 'https://www.nugs.net/';
   }
   let input = (document.getElementById('archiveId').value || '').trim();
   const m = input.match(/\/details\/([^\/\?#]+)/);

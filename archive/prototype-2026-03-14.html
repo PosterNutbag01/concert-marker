@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phish Taper Marker Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0c;
+  --surface: #141418;
+  --surface2: #1c1c22;
+  --border: #2a2a32;
+  --text: #e0e0e4;
+  --text-dim: #888890;
+  --accent: #c45d3e;
+  --accent-hover: #e07a5f;
+  --green: #4a9;
+  --green-dim: #3a8070;
+  --red: #c44;
+  --font-ui: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 80px;
+}
+
+h1 {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 32px;
+}
+
+/* Steps */
+.step {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(196, 93, 62, 0.15);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.step-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.step-status {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--green);
+}
+
+/* Form elements */
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+input, select, textarea {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus, textarea:focus {
+  border-color: var(--accent);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+button {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--border);
+}
+
+.btn-small {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--red);
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.btn-danger:hover {
+  background: rgba(204,68,68,0.15);
+}
+
+/* Row layouts */
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.row > * {
+  flex: 1;
+}
+
+.field {
+  margin-bottom: 12px;
+}
+
+/* Gear chain */
+.gear-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.gear-row input {
+  flex: 1;
+}
+
+.gear-row .gear-label {
+  width: 100px;
+  flex: none;
+}
+
+.gear-preview {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--green);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 12px;
+  word-break: break-all;
+}
+
+.gear-preset-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+/* Setlist table */
+.setlist-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.setlist-table th {
+  text-align: left;
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.setlist-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--surface2);
+}
+
+.setlist-table .set-divider td {
+  padding: 12px 8px 6px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.setlist-table .time {
+  color: var(--green);
+}
+
+/* Anchor points */
+.anchor-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.anchor-field {
+  margin-bottom: 12px;
+}
+
+.anchor-field label {
+  font-size: 12px;
+}
+
+.anchor-field .anchor-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+/* Marker preview table */
+.marker-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+.marker-table th {
+  text-align: left;
+  font-size: 10px;
+  color: var(--text-dim);
+  padding: 6px 6px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.marker-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--surface2);
+}
+
+.marker-table .marker-name {
+  color: var(--green);
+  word-break: break-all;
+}
+
+.marker-table .marker-time {
+  color: var(--accent-hover);
+  white-space: nowrap;
+}
+
+/* Messages */
+.msg-error {
+  color: var(--red);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.msg-info {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+/* Manual entry toggle */
+.toggle-link {
+  font-size: 13px;
+  color: var(--accent);
+  cursor: pointer;
+  margin-top: 8px;
+  display: inline-block;
+}
+
+.toggle-link:hover {
+  color: var(--accent-hover);
+}
+
+.hidden { display: none !important; }
+
+/* Mobile */
+@media (max-width: 600px) {
+  .container { padding: 16px 12px 60px; }
+  .row { flex-direction: column; gap: 0; }
+  .gear-row .gear-label { width: 80px; }
+  .marker-table { font-size: 11px; }
+}
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>// taper marker gen</h1>
+  <p class="subtitle">Adobe Audition marker CSV generator for Phish tapers</p>
+
+  <!-- STEP 1: Show Info -->
+  <div class="step" id="step1">
+    <div class="step-header">
+      <span class="step-num">01</span>
+      <span class="step-title">Show Info</span>
+      <span class="step-status" id="step1-status"></span>
+    </div>
+    <div class="field">
+      <label for="show-date">Show date</label>
+      <div class="row">
+        <input type="text" id="show-date" placeholder="YYYY-MM-DD" maxlength="10">
+        <button class="btn-primary" id="fetch-btn" onclick="fetchShow()">Fetch</button>
+      </div>
+    </div>
+    <div id="fetch-msg"></div>
+    <div class="toggle-link" onclick="toggleManual()">or paste setlist manually</div>
+    <div id="manual-entry" class="hidden">
+      <div class="field" style="margin-top:12px">
+        <label for="manual-text">One song per line: song name | duration in seconds</label>
+        <textarea id="manual-text" placeholder="Set 1&#10;Tweezer | 845&#10;Blaze On | 412&#10;&#10;Set 2&#10;Down with Disease | 1023&#10;..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="parseManual()">Parse setlist</button>
+      <div id="manual-msg"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Gear Chain -->
+  <div class="step" id="step2">
+    <div class="step-header">
+      <span class="step-num">02</span>
+      <span class="step-title">Gear Chain</span>
+      <span class="step-status" id="step2-status"></span>
+    </div>
+    <div class="gear-preset-bar">
+      <select id="preset-select" style="width:auto;flex:1">
+        <option value="">-- presets --</option>
+      </select>
+      <button class="btn-secondary btn-small" onclick="loadPreset()">Load</button>
+      <button class="btn-secondary btn-small" onclick="savePreset()">Save</button>
+      <button class="btn-danger btn-small" onclick="deletePreset()">Del</button>
+    </div>
+    <div id="gear-rows"></div>
+    <button class="btn-secondary btn-small" onclick="addGearRow()">+ add gear to chain</button>
+    <div class="gear-preview" id="gear-preview">ph<span id="preview-date">YYYY-MM-DD</span><span id="preview-gear"></span>.s01t01</div>
+  </div>
+
+  <!-- STEP 3: Setlist & Anchors -->
+  <div class="step" id="step3">
+    <div class="step-header">
+      <span class="step-num">03</span>
+      <span class="step-title">Setlist &amp; Anchor Points</span>
+      <span class="step-status" id="step3-status"></span>
+    </div>
+    <div id="setlist-display">
+      <p class="msg-info">Fetch a show first to see the setlist.</p>
+    </div>
+    <div id="anchor-section" class="anchor-section hidden">
+      <p style="font-size:13px;margin-bottom:12px;color:var(--text-dim)">
+        Enter timecodes from your recording to anchor the markers. Use h:mm:ss, mm:ss, or seconds.
+      </p>
+      <div class="anchor-field">
+        <label>End of Set 1 (last note of last song)</label>
+        <div class="anchor-desc" id="anchor1-desc"></div>
+        <input type="text" id="anchor-end-s1" placeholder="e.g. 1:42:30" oninput="updateAnchors()">
+      </div>
+      <div class="anchor-field">
+        <label>Start of Set 2 (first note)</label>
+        <div class="anchor-desc" id="anchor2-desc"></div>
+        <input type="text" id="anchor-start-s2" placeholder="e.g. 2:05:15" oninput="updateAnchors()">
+      </div>
+      <div class="anchor-field">
+        <label>End of show (last note of final song)</label>
+        <div class="anchor-desc" id="anchor3-desc"></div>
+        <input type="text" id="anchor-end-show" placeholder="e.g. 4:18:00" oninput="updateAnchors()">
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Export -->
+  <div class="step" id="step4">
+    <div class="step-header">
+      <span class="step-num">04</span>
+      <span class="step-title">Export</span>
+    </div>
+    <div id="marker-preview">
+      <p class="msg-info">Complete steps above to preview markers.</p>
+    </div>
+    <div style="margin-top:16px">
+      <button class="btn-primary" id="download-btn" onclick="downloadCSV()" disabled>Download CSV</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let showDate = '';
+let tracks = []; // { title, durationSec, setName, setNum, position, trackNum }
+let sets = [];   // ordered unique set labels
+let gearRows = [];
+let computedMarkers = []; // { name, startSec, description, setLabel, trackNum }
+
+// ── Step 1: Fetch ──
+async function fetchShow() {
+  const dateInput = document.getElementById('show-date').value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+    showMsg('fetch-msg', 'Enter a valid date: YYYY-MM-DD', true);
+    return;
+  }
+  const btn = document.getElementById('fetch-btn');
+  btn.disabled = true;
+  btn.innerHTML = 'Fetching<span class="spinner"></span>';
+  showMsg('fetch-msg', '');
+
+  try {
+    const resp = await fetch(`https://phish.in/api/v2/shows/${dateInput}`);
+    if (!resp.ok) throw new Error(`Show not found (${resp.status})`);
+    const data = await resp.json();
+    if (!data.tracks || data.tracks.length === 0) throw new Error('No tracks in API response');
+
+    showDate = dateInput;
+    tracks = [];
+    let trackNum = 0;
+    for (const t of data.tracks) {
+      trackNum++;
+      tracks.push({
+        title: t.title,
+        durationSec: Math.round(t.duration / 1000),
+        setName: t.set_name,
+        position: t.position,
+        trackNum
+      });
+    }
+    buildSets();
+    document.getElementById('step1-status').textContent = showDate;
+    showMsg('fetch-msg', `Loaded ${tracks.length} tracks`, false);
+    renderSetlist();
+    updatePreview();
+  } catch (e) {
+    showMsg('fetch-msg', e.message, true);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Fetch';
+}
+
+function toggleManual() {
+  document.getElementById('manual-entry').classList.toggle('hidden');
+}
+
+function parseManual() {
+  const text = document.getElementById('manual-text').value.trim();
+  if (!text) { showMsg('manual-msg', 'Paste a setlist first', true); return; }
+
+  const dateInput = document.getElementById('show-date').value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+    showMsg('manual-msg', 'Enter a valid show date above', true);
+    return;
+  }
+  showDate = dateInput;
+
+  tracks = [];
+  let currentSet = 'Set 1';
+  let trackNum = 0;
+  const lines = text.split('\n');
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // Check for set header
+    const setMatch = line.match(/^(set\s*\d+|encore\s*\d*)/i);
+    if (setMatch) {
+      const s = setMatch[1].toLowerCase();
+      if (/encore/i.test(s)) {
+        const num = s.replace(/\D/g, '');
+        currentSet = num && num !== '1' ? `Encore ${num}` : 'Encore';
+      } else {
+        const num = s.replace(/\D/g, '');
+        currentSet = `Set ${num || '1'}`;
+      }
+      continue;
+    }
+
+    // Parse song line: name | duration  OR  name \t duration
+    const parts = line.split(/[|\t]/);
+    if (parts.length < 2) continue;
+    const title = parts[0].trim();
+    const durStr = parts[1].trim();
+    const dur = parseInt(durStr, 10);
+    if (!title || isNaN(dur)) continue;
+
+    trackNum++;
+    tracks.push({ title, durationSec: dur, setName: currentSet, trackNum });
+  }
+
+  if (tracks.length === 0) {
+    showMsg('manual-msg', 'Could not parse any tracks. Use format: song name | seconds', true);
+    return;
+  }
+
+  buildSets();
+  document.getElementById('step1-status').textContent = showDate;
+  showMsg('manual-msg', `Parsed ${tracks.length} tracks`, false);
+  renderSetlist();
+  updatePreview();
+}
+
+function buildSets() {
+  const seen = new Set();
+  sets = [];
+  for (const t of tracks) {
+    if (!seen.has(t.setName)) {
+      seen.add(t.setName);
+      sets.push(t.setName);
+    }
+  }
+}
+
+// ── Step 2: Gear Chain ──
+let gearIdCounter = 0;
+
+function addGearRow(label, value) {
+  const id = gearIdCounter++;
+  gearRows.push(id);
+  const container = document.getElementById('gear-rows');
+  const row = document.createElement('div');
+  row.className = 'gear-row';
+  row.id = `gear-${id}`;
+  row.innerHTML = `
+    <input class="gear-label" type="text" placeholder="label" value="${esc(label || '')}" oninput="updatePreview()">
+    <input type="text" placeholder="value" value="${esc(value || '')}" oninput="updatePreview()">
+    <button class="btn-danger btn-small" onclick="removeGearRow(${id})">x</button>
+  `;
+  container.appendChild(row);
+  updatePreview();
+}
+
+function removeGearRow(id) {
+  const el = document.getElementById(`gear-${id}`);
+  if (el) el.remove();
+  gearRows = gearRows.filter(r => r !== id);
+  updatePreview();
+}
+
+function getGearChain() {
+  const parts = [];
+  for (const id of gearRows) {
+    const row = document.getElementById(`gear-${id}`);
+    if (!row) continue;
+    const val = row.querySelectorAll('input')[1].value.trim();
+    if (val) parts.push(val);
+  }
+  return parts;
+}
+
+function updatePreview() {
+  const date = showDate || 'YYYY-MM-DD';
+  document.getElementById('preview-date').textContent = date;
+  const chain = getGearChain();
+  const gearStr = chain.length > 0 ? chain.join('.') + '.' : '.';
+  document.getElementById('preview-gear').textContent = gearStr;
+  // Also update step 2 status
+  document.getElementById('step2-status').textContent = chain.length > 0 ? chain.join('.') : '';
+}
+
+// Presets
+function getPresets() {
+  try { return JSON.parse(localStorage.getItem('taper-gear-presets') || '{}'); } catch { return {}; }
+}
+function savePresets(p) { localStorage.setItem('taper-gear-presets', JSON.stringify(p)); }
+function refreshPresetList() {
+  const sel = document.getElementById('preset-select');
+  const presets = getPresets();
+  sel.innerHTML = '<option value="">-- presets --</option>';
+  for (const name of Object.keys(presets).sort()) {
+    sel.innerHTML += `<option value="${esc(name)}">${esc(name)}</option>`;
+  }
+}
+
+function savePreset() {
+  const chain = getGearChain();
+  if (chain.length === 0) return;
+  const name = prompt('Preset name:');
+  if (!name) return;
+  // Save rows with labels
+  const rows = [];
+  for (const id of gearRows) {
+    const row = document.getElementById(`gear-${id}`);
+    if (!row) continue;
+    const inputs = row.querySelectorAll('input');
+    rows.push({ label: inputs[0].value.trim(), value: inputs[1].value.trim() });
+  }
+  const presets = getPresets();
+  presets[name] = rows;
+  savePresets(presets);
+  refreshPresetList();
+  document.getElementById('preset-select').value = name;
+}
+
+function loadPreset() {
+  const name = document.getElementById('preset-select').value;
+  if (!name) return;
+  const presets = getPresets();
+  const rows = presets[name];
+  if (!rows) return;
+  // Clear existing
+  document.getElementById('gear-rows').innerHTML = '';
+  gearRows = [];
+  for (const r of rows) addGearRow(r.label, r.value);
+}
+
+function deletePreset() {
+  const name = document.getElementById('preset-select').value;
+  if (!name) return;
+  if (!confirm(`Delete preset "${name}"?`)) return;
+  const presets = getPresets();
+  delete presets[name];
+  savePresets(presets);
+  refreshPresetList();
+}
+
+// ── Step 3: Setlist & Anchors ──
+function renderSetlist() {
+  if (tracks.length === 0) return;
+
+  let html = '<table class="setlist-table"><thead><tr><th>#</th><th>Song</th><th>Duration</th></tr></thead><tbody>';
+  let currentSet = '';
+  for (const t of tracks) {
+    if (t.setName !== currentSet) {
+      currentSet = t.setName;
+      html += `<tr class="set-divider"><td colspan="3">${esc(currentSet)}</td></tr>`;
+    }
+    html += `<tr>
+      <td>${t.trackNum}</td>
+      <td>${esc(t.title)}</td>
+      <td class="time">${fmtDuration(t.durationSec)}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('setlist-display').innerHTML = html;
+
+  // Configure anchor descriptions
+  const s1Tracks = tracks.filter(t => t.setName === 'Set 1');
+  const lastS1 = s1Tracks.length > 0 ? s1Tracks[s1Tracks.length - 1] : null;
+  const s2Tracks = tracks.filter(t => t.setName === 'Set 2');
+  const firstS2 = s2Tracks.length > 0 ? s2Tracks[0] : null;
+  const lastTrack = tracks[tracks.length - 1];
+
+  document.getElementById('anchor1-desc').textContent = lastS1 ? `After "${lastS1.title}" ends` : '';
+  document.getElementById('anchor2-desc').textContent = firstS2 ? `When "${firstS2.title}" begins` : '';
+  document.getElementById('anchor3-desc').textContent = lastTrack ? `After "${lastTrack.title}" ends` : '';
+
+  document.getElementById('anchor-section').classList.remove('hidden');
+}
+
+// ── Timecode parsing ──
+function parseTimecode(str) {
+  str = str.trim();
+  if (!str) return null;
+
+  // Plain number = seconds
+  if (/^\d+(\.\d+)?$/.test(str)) return parseFloat(str);
+
+  // h:mm:ss.ms or mm:ss.ms or h:mm:ss or mm:ss
+  const parts = str.split(':');
+  if (parts.length === 3) {
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const s = parseFloat(parts[2]);
+    if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+    return h * 3600 + m * 60 + s;
+  }
+  if (parts.length === 2) {
+    const m = parseInt(parts[0], 10);
+    const s = parseFloat(parts[1]);
+    if (isNaN(m) || isNaN(s)) return null;
+    return m * 60 + s;
+  }
+  return null;
+}
+
+function fmtDuration(sec) {
+  const s = Math.round(sec);
+  const m = Math.floor(s / 60);
+  const ss = s % 60;
+  return `${m}:${String(ss).padStart(2, '0')}`;
+}
+
+function fmtTimecodeDecimal(totalSec) {
+  if (totalSec < 0) totalSec = 0;
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const sWhole = Math.floor(s);
+  const ms = Math.round((s - sWhole) * 1000);
+
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(sWhole).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+  }
+  return `${m}:${String(sWhole).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+}
+
+// ── Anchor calculation ──
+function updateAnchors() {
+  if (tracks.length === 0) return;
+
+  const endS1 = parseTimecode(document.getElementById('anchor-end-s1').value);
+  const startS2 = parseTimecode(document.getElementById('anchor-start-s2').value);
+  const endShow = parseTimecode(document.getElementById('anchor-end-show').value);
+
+  // Need at least all three anchors
+  if (endS1 === null || startS2 === null || endShow === null) {
+    document.getElementById('step3-status').textContent = '';
+    computedMarkers = [];
+    renderMarkers();
+    return;
+  }
+
+  computeMarkers(endS1, startS2, endShow);
+  document.getElementById('step3-status').textContent = 'anchored';
+  renderMarkers();
+}
+
+function computeMarkers(endS1Sec, startS2Sec, endShowSec) {
+  computedMarkers = [];
+
+  const chain = getGearChain();
+  const gearStr = chain.length > 0 ? chain.join('.') + '.' : '.';
+  const dateStr = showDate;
+
+  // Group tracks by set
+  const setGroups = [];
+  let currentSetName = null;
+  let currentGroup = null;
+  for (const t of tracks) {
+    if (t.setName !== currentSetName) {
+      currentSetName = t.setName;
+      currentGroup = { setName: t.setName, tracks: [] };
+      setGroups.push(currentGroup);
+    }
+    currentGroup.tracks.push(t);
+  }
+
+  // Assign set numbers: Set 1 → s01, Set 2 → s02, Set 3 → s03, Encore → next number, Encore 2 → next
+  const setNums = {};
+  let sn = 0;
+  for (const g of setGroups) {
+    sn++;
+    setNums[g.setName] = sn;
+  }
+
+  // Determine which sets belong to which anchor region
+  // Region 1: Set 1 — work backwards from endS1Sec
+  // Region 2: Set 2 and beyond until last set — work forward from startS2Sec, then work backwards from endShowSec for the last group in region 2
+
+  // Find set 1 index
+  const s1Idx = setGroups.findIndex(g => g.setName === 'Set 1');
+  const s2Idx = setGroups.findIndex(g => g.setName === 'Set 2');
+
+  // Region 1: everything up to and including Set 1
+  // Work backwards from endS1Sec
+  if (s1Idx >= 0) {
+    // All tracks in sets up to s1Idx
+    const region1Tracks = [];
+    for (let i = 0; i <= s1Idx; i++) {
+      region1Tracks.push(...setGroups[i].tracks);
+    }
+    // Work backwards from endS1Sec
+    let cursor = endS1Sec;
+    const starts = [];
+    for (let i = region1Tracks.length - 1; i >= 0; i--) {
+      const start = cursor - region1Tracks[i].durationSec;
+      starts.unshift(start);
+      cursor = start;
+    }
+    for (let i = 0; i < region1Tracks.length; i++) {
+      const t = region1Tracks[i];
+      const sNum = setNums[t.setName];
+      computedMarkers.push({
+        name: `ph${dateStr}${gearStr}s${String(sNum).padStart(2,'0')}t${String(t.trackNum).padStart(2,'0')}`,
+        startSec: starts[i],
+        description: t.title,
+        setLabel: t.setName,
+        trackNum: t.trackNum
+      });
+    }
+  }
+
+  // Region 2: everything from Set 2 onward
+  // Work backwards from endShowSec for all remaining tracks, but also anchor to startS2Sec
+  if (s2Idx >= 0) {
+    const region2Tracks = [];
+    for (let i = s2Idx; i < setGroups.length; i++) {
+      region2Tracks.push(...setGroups[i].tracks);
+    }
+
+    // Strategy: work backwards from endShowSec
+    let cursor = endShowSec;
+    const starts = [];
+    for (let i = region2Tracks.length - 1; i >= 0; i--) {
+      const start = cursor - region2Tracks[i].durationSec;
+      starts.unshift(start);
+      cursor = start;
+    }
+
+    // The first track of region2 should ideally be at startS2Sec
+    // Calculate offset and blend: use startS2Sec for the start anchor
+    const calculatedS2Start = starts[0];
+    const offset = startS2Sec - calculatedS2Start;
+
+    // Apply offset — shift all region 2 markers so the first aligns with startS2Sec
+    // But also keep the end anchored. Linear interpolation:
+    // For track at position i (0-based), blend between start-anchored and end-anchored
+    const totalDur = endShowSec - startS2Sec;
+    const calcTotalDur = endShowSec - calculatedS2Start;
+
+    for (let i = 0; i < region2Tracks.length; i++) {
+      const t = region2Tracks[i];
+      const sNum = setNums[t.setName];
+
+      // Blend factor: 0 at start of set 2 (use startS2Sec anchor), 1 at end of show (use endShowSec anchor)
+      let blendedStart;
+      if (totalDur > 0 && calcTotalDur > 0) {
+        const startAnchored = starts[i] + offset; // shifted to match startS2Sec
+        const endAnchored = starts[i]; // already anchored to endShowSec
+        const progress = (starts[i] - calculatedS2Start) / calcTotalDur;
+        blendedStart = startAnchored * (1 - progress) + endAnchored * progress;
+      } else {
+        blendedStart = starts[i] + offset;
+      }
+
+      computedMarkers.push({
+        name: `ph${dateStr}${gearStr}s${String(sNum).padStart(2,'0')}t${String(t.trackNum).padStart(2,'0')}`,
+        startSec: blendedStart,
+        description: t.title,
+        setLabel: t.setName,
+        trackNum: t.trackNum
+      });
+    }
+  }
+
+  // Sort by trackNum
+  computedMarkers.sort((a, b) => a.trackNum - b.trackNum);
+}
+
+// ── Step 4: Render & Export ──
+function renderMarkers() {
+  const container = document.getElementById('marker-preview');
+  const btn = document.getElementById('download-btn');
+
+  if (computedMarkers.length === 0) {
+    container.innerHTML = '<p class="msg-info">Complete steps above to preview markers.</p>';
+    btn.disabled = true;
+    return;
+  }
+
+  let html = '<table class="marker-table"><thead><tr><th>Name</th><th>Start</th><th>Song</th></tr></thead><tbody>';
+  let currentSet = '';
+  for (const m of computedMarkers) {
+    if (m.setLabel !== currentSet) {
+      currentSet = m.setLabel;
+      html += `<tr class="set-divider"><td colspan="3" style="color:var(--accent);font-weight:600;font-size:11px;padding:10px 6px 4px">${esc(currentSet)}</td></tr>`;
+    }
+    html += `<tr>
+      <td class="marker-name">${esc(m.name)}</td>
+      <td class="marker-time">${fmtTimecodeDecimal(m.startSec)}</td>
+      <td>${esc(m.description)}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  btn.disabled = false;
+}
+
+function downloadCSV() {
+  if (computedMarkers.length === 0) return;
+
+  const lines = ['Name\tStart\tDuration\tTime Format\tType\tDescription'];
+  for (const m of computedMarkers) {
+    lines.push(`${m.name}\t${fmtTimecodeDecimal(m.startSec)}\t0:00.000\tdecimal\tCue\t${m.description}`);
+  }
+
+  const content = lines.join('\n');
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ph${showDate}-markers.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Utilities ──
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function showMsg(id, msg, isError) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = isError ? 'msg-error' : 'msg-info';
+}
+
+// ── Init ──
+refreshPresetList();
+
+// Allow Enter to fetch
+document.getElementById('show-date').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') fetchShow();
+});
+</script>
+</body>
+</html>
