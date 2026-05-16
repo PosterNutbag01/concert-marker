@@ -1,6 +1,6 @@
 # concert-marker
 
-Audio marker generator for live concert tapers. Fetch a setlist from phish.in or archive.org, build your signal-chain marker names, set three anchor timecodes, and export markers to the DAW of your choice.
+Audio marker generator for live concert tapers. Fetch a setlist from phish.in, archive.org, or nugs.net, build your signal-chain marker names, anchor each set to your recording, and export markers to the DAW of your choice.
 
 **Live:** <https://posternutbag01.github.io/concert-marker/> (if GitHub Pages is enabled for this repo)
 
@@ -18,17 +18,20 @@ Plus a separate info text file (`band.YYYY.MM.DD.gearchain.txt`) with source, li
 
 ## How anchors work
 
-Anchors map the real audio timeline onto the setlist durations:
+For each set you get two timecode fields: where the first note hits, and where the last note ends. When both are filled in, every song in that set is scaled proportionally to fit the real elapsed time — no drift, even when the reference durations from phish.in / archive.org / nugs.net don't match your recording exactly.
 
-- **Anchor 1:** where the last song of Set 1 ENDS
-- **Anchor 2:** where Set 2 STARTS
-- **Anchor 3:** where the very last song ENDS (usually end of encore)
+Per-set rules:
 
-Leave all three blank for markers starting at `0:00`. Intermediate sets with no anchor stack from the previous set's end with no gap.
+- **Start + End filled** → proportional scaling. Every marker lands in the right place.
+- **Only Start** → no scaling, songs stack at their reference durations from your start time.
+- **Only End** → start is back-calculated; last song's end lines up, earlier songs may drift.
+- **Both blank** → first set starts at `0:00`, later sets stack onto the previous set's end.
+
+For shows with 3+ sets, every set gets its own pair of fields. Fetch a setlist in Step 1 — the anchor form rebuilds itself around the actual set count.
 
 ## Features
 
-- Fetch setlists from **phish.in** (any date) or **archive.org** (etree identifiers)
+- Fetch setlists from **phish.in** (any date), **archive.org** (etree identifiers), or **nugs.net** (paste any live-download URL)
 - Drag-reorder signal chain rows; preview marker names live
 - Autosave — refresh won't throw away your work
 - Copy markers to clipboard in any format
