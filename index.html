@@ -292,6 +292,63 @@
     line-height: 1.7;
   }
 
+  .runtime-summary {
+    background: var(--surface);
+    border: 1.5px solid var(--surface2);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+  }
+  .rt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--heading);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--surface2);
+  }
+  .rt-header strong { font-family: var(--mono); font-size: 1rem; color: var(--text); }
+  .rt-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    padding: 3px 0;
+    align-items: baseline;
+  }
+  .rt-row .rt-dur { color: var(--text); }
+  .rt-row .rt-count { color: var(--text-dim); font-size: 0.75rem; min-width: 70px; text-align: right; }
+  .rt-hint {
+    margin: 10px 0 0;
+    font-family: var(--sans);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .anchor-diag {
+    margin-top: 6px;
+    min-height: 1.4em;
+  }
+  .diag {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 6px 10px;
+    border-radius: 6px;
+    line-height: 1.5;
+  }
+  .diag-green  { background: rgba(45,138,78,0.08);  color: var(--green); border: 1px solid rgba(45,138,78,0.2); }
+  .diag-yellow { background: rgba(204,153,0,0.08);  color: #8a6500;       border: 1px solid rgba(204,153,0,0.25); }
+  .diag-red    { background: rgba(204,51,51,0.06);  color: var(--red);   border: 1px solid rgba(204,51,51,0.2); }
+  .diag-info   { background: var(--accent-light);    color: var(--text-dim); border: 1px solid var(--border); }
+
   /* Marker Table */
   .marker-table {
     width: 100%;
@@ -517,6 +574,8 @@
   <div class="panel" id="step3">
     <h2>Anchor Points</h2>
     <p class="desc">Tell us where each set begins and ends in your recording. The tool scales every song proportionally so markers stay locked to real time, not reference durations.</p>
+
+    <div id="runtimeSummary"></div>
 
     <div class="anchor-info">
       Open your recording in your DAW. For each set, find the first note in and the last note out (clean cuts — before applause, after intro). Leave any field blank to skip scaling for that set.
@@ -1461,6 +1520,7 @@ function renderAnchorInputs() {
   if (!container) return;
   if (!showData.sets || showData.sets.length === 0) {
     container.innerHTML = '<p class="desc" style="font-style:italic;">Fetch a setlist in Step 1 first — anchor fields appear here once we know how many sets there are.</p>';
+    renderRuntimeSummary();
     return;
   }
   const N = showData.sets.length;
@@ -1478,9 +1538,90 @@ function renderAnchorInputs() {
         <input type="text" id="setStart_${i}" placeholder="e.g. 0:05:23.140" autocomplete="off">
         <label>${endLabel}</label>
         <input type="text" id="setEnd_${i}" placeholder="e.g. 1:25:43.413" autocomplete="off">
+        <div class="anchor-diag" id="diag_${i}"></div>
       </div>`;
   });
   container.innerHTML = html;
+  renderRuntimeSummary();
+  // Run diagnostics once in case values were restored before the container existed.
+  showData.sets.forEach((_, i) => updateAnchorDiagnostics(i));
+}
+
+function _fmtRuntime(secs) {
+  if (!Number.isFinite(secs) || secs < 0) return '–';
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = Math.floor(secs % 60);
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// Sum reference durations and show what the music should run. The real file is
+// always longer (setbreak, applause, tape pre/post-roll) — tell the user that
+// explicitly so they don't think the tool is wrong when their file is bigger.
+function renderRuntimeSummary() {
+  const container = document.getElementById('runtimeSummary');
+  if (!container) return;
+  if (!showData.sets || showData.sets.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  const total = showData.sets.reduce((sum, set) => sum + set.songs.reduce((s, t) => s + t.duration, 0), 0);
+  let rows = '';
+  showData.sets.forEach(set => {
+    const setTotal = set.songs.reduce((s, t) => s + t.duration, 0);
+    const n = set.songs.length;
+    rows += `<div class="rt-row"><span>${set.label}</span><span class="rt-dur">${_fmtRuntime(setTotal)}</span><span class="rt-count">${n} song${n === 1 ? '' : 's'}</span></div>`;
+  });
+  // Expected total file length range: music + ~15-25 min setbreak per gap + ~1 min/song applause padding.
+  const gapEstimate = Math.max(0, (showData.sets.length - 1)) * (15 * 60);
+  const applauseEstimate = showData.sets.reduce((s, set) => s + set.songs.length, 0) * 60;
+  const lo = total + Math.round(gapEstimate * 0.7) + Math.round(applauseEstimate * 0.5);
+  const hi = total + Math.round(gapEstimate * 1.5) + Math.round(applauseEstimate * 1.2);
+  container.innerHTML = `
+    <div class="runtime-summary">
+      <div class="rt-header"><span>Music runtime (reference)</span><strong>${_fmtRuntime(total)}</strong></div>
+      ${rows}
+      <p class="rt-hint">Your file will be longer — recordings add setbreak, applause, and tape padding. Expect roughly <strong>${_fmtRuntime(lo)}–${_fmtRuntime(hi)}</strong> for the whole file.</p>
+    </div>`;
+}
+
+// Live feedback as the user types anchors: real duration, reference duration,
+// scale factor, and a warning if the scale is implausible (likely typo or
+// wrong show).
+function updateAnchorDiagnostics(setIdx) {
+  const diag = document.getElementById(`diag_${setIdx}`);
+  if (!diag || !showData.sets || !showData.sets[setIdx]) return;
+  const startEl = document.getElementById(`setStart_${setIdx}`);
+  const endEl = document.getElementById(`setEnd_${setIdx}`);
+  const aStart = startEl && startEl.value.trim() ? parseTime(startEl.value) : null;
+  const aEnd = endEl && endEl.value.trim() ? parseTime(endEl.value) : null;
+  const refTotal = showData.sets[setIdx].songs.reduce((s, t) => s + t.duration, 0);
+
+  if (aStart === null && aEnd === null) { diag.innerHTML = ''; return; }
+  if (aStart !== null && aEnd === null) {
+    diag.innerHTML = `<div class="diag diag-info">Start set. Add an end time for per-song scaling — otherwise reference durations stack from here.</div>`;
+    return;
+  }
+  if (aStart === null && aEnd !== null) {
+    diag.innerHTML = `<div class="diag diag-info">End set. Set start will be back-calculated; earlier songs in this set may drift.</div>`;
+    return;
+  }
+  const real = aEnd - aStart;
+  if (real <= 0) {
+    diag.innerHTML = `<div class="diag diag-red">End time is before start time.</div>`;
+    return;
+  }
+  if (refTotal <= 0) {
+    diag.innerHTML = `<div class="diag diag-yellow">Reference duration is 0 — can't scale (probably a manual setlist without timing).</div>`;
+    return;
+  }
+  const scale = real / refTotal;
+  let cls = 'diag-green', warn = '';
+  if (scale < 0.5 || scale > 2.0) { cls = 'diag-red'; warn = ' — way off. Wrong show or typo?'; }
+  else if (scale < 0.85 || scale > 1.15) { cls = 'diag-yellow'; warn = ' — pretty stretched. Double-check anchors.'; }
+  diag.innerHTML = `<div class="diag ${cls}">Real ${_fmtRuntime(real)} · reference ${_fmtRuntime(refTotal)} · scale ${scale.toFixed(3)}×${warn}</div>`;
 }
 
 // Per-set scaling so markers don't drift inside a set when the reference
@@ -2077,6 +2218,13 @@ function wireAutosave() {
   // Capture-phase listener catches inputs on dynamic rows too.
   document.addEventListener('input', scheduleAutosave, true);
   document.addEventListener('change', scheduleAutosave, true);
+  // Delegated listener: refresh per-set diagnostics live as anchor inputs change.
+  document.addEventListener('input', (e) => {
+    const id = e.target && e.target.id;
+    if (!id) return;
+    const m = id.match(/^set(?:Start|End)_(\d+)$/);
+    if (m) updateAnchorDiagnostics(parseInt(m[1], 10));
+  }, true);
 }
 
 // Init
